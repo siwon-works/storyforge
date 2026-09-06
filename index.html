@@ -668,9 +668,11 @@
   .link-item.sub{margin-left:12px;border-left:2px solid var(--border);
     border-radius:0 var(--r-md) var(--r-md) 0;}
   .link-item.sub:hover{border-left-color:var(--accent);}
-  /* 하위 작업만 링크가 있는 단계 — 이름을 세워주지 않으면 소속을 알 수 없다 */
-  .link-group{display:flex;align-items:center;gap:5px;padding:7px 10px 3px;
-    font-size:var(--fs-xs);font-weight:700;color:var(--sub);
+  .link-emoji{flex:0 0 auto;font-size:var(--fs-sm);line-height:1;}
+  /* 링크가 없는 단계 — 상자를 씌우지 않는다. 눌리지 않는다는 걸 모양으로 알려야 한다.
+     아래 여백은 두지 않는다. 딸린 하위 작업과 붙어 있어야 한 덩어리로 읽힌다. */
+  .link-group{display:flex;align-items:center;gap:6px;padding:8px 10px 3px;
+    font-size:var(--fs-sm);font-weight:600;color:var(--sub);
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .link-act{flex:0 0 auto;font-size:var(--fs-xs);font-weight:700;color:var(--sub);opacity:0;
     transition:opacity .12s ease;}
@@ -703,6 +705,23 @@
   .note-board.col .note.drop-after::after{bottom:-7px;}
 
   /* 휴지통에 들어간 메모 — 색은 그대로 두되 기울이지 않는다. 정리된 목록처럼 보여야 한다 */
+  /* 편집 중인 메모 — 기울기를 펴고 위로 띄운다. 삐뚤어진 종이에 글을 쓰긴 어렵다. */
+  .note.editing{transform:none;cursor:default;z-index:3;
+    box-shadow:0 6px 18px rgba(0,0,0,.22);}
+  .note-edit-area{width:100%;border:none;background:transparent;color:inherit;
+    font-family:inherit;font-size:var(--fs-sm);line-height:1.5;font-weight:500;
+    resize:none;outline:none;padding:0;overflow:hidden;min-height:56px;display:block;}
+  /* 색 고르기 — 작으면 조준해서 눌러야 한다. 손가락으로도 눌리는 크기로 둔다.
+     고른 것은 테두리를 두르지 않는다. 두르면 그 테두리가 또 하나의 색처럼 보인다.
+     대신 가운데에 점을 찍는다. */
+  .note-edit-colors{display:flex;gap:8px;margin-top:11px;}
+  .note-edit-colors button{width:26px;height:26px;border-radius:50%;padding:0;
+    border:1.5px solid;cursor:pointer;position:relative;
+    transition:transform .12s ease;}
+  .note-edit-colors button:hover{transform:scale(1.12);}
+  .note-edit-colors button:active{transform:scale(.94);}
+  .note-edit-colors button.on::after{content:"";position:absolute;inset:0;margin:auto;
+    width:9px;height:9px;border-radius:50%;background:rgba(0,0,0,.45);}
   .note.trashed{cursor:default;}
   .note.trashed:hover{transform:translateY(-2px);}
   .note-from{position:relative;margin-top:8px;font-size:var(--fs-xs);opacity:.65;font-weight:600;
@@ -3945,30 +3964,51 @@ try{
     });
     return out;
   }
+  /* 단계로 묶어서 그린다. 단계 이름 줄이 곧 그 단계의 링크다 —
+     따로 한 줄을 더 두면 "인트로 > 인트로" 처럼 이름이 두 번 나온다.
+     링크가 없는 단계는 상자 없는 회색 이름표로 남긴다.
+     상자가 있으면 눌리는 것, 회색 글씨면 이름표 — 규칙은 이 하나다.
+
+     번호(idx)는 collectLinks 가 담는 순서와 정확히 같아야 한다. 복사 버튼이
+     그 배열의 번호를 그대로 쓰기 때문에, 어긋나면 엉뚱한 링크가 복사된다. */
+  function linkRowHtml(label, url, idx, isHead, icon){
+    const cls = "link-item" + (isHead ? " head" : " sub");
+    const mark = isHead
+      ? `<span class="link-emoji">${icon}</span>`
+      : (isLocalPath(url)
+        ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>`);
+    const body = `${mark}<span class="link-text">${escapeHtml(label)}</span>`;
+    return isLocalPath(url)
+      ? `<button class="${cls}" data-copylink="${idx}" title="${escapeHtml(url)}">
+           ${body}<span class="link-act">복사</span></button>`
+      : `<a class="${cls}" href="${url}" target="_blank" rel="noopener" title="${escapeHtml(url)}">
+           ${body}<span class="link-act">열기 ↗</span></a>`;
+  }
+
+  function linkRowsHtml(p){
+    const rows = [];
+    let idx = -1;
+    p.stages.forEach(st=>{
+      const subs = (st.subtasks || []).filter(s=>s.url);
+      if(!st.url && !subs.length) return;
+      const icon = st.icon || iconFor(st.name);
+      if(st.url){
+        rows.push(linkRowHtml(st.name, st.url, ++idx, true, icon));
+      }else{
+        rows.push(`<div class="link-group">${icon}<span>${escapeHtml(st.name)}</span></div>`);
+      }
+      subs.forEach(s=> rows.push(linkRowHtml(s.t, s.url, ++idx, false, null)));
+    });
+    return rows.join("");
+  }
+
   function linkListHtml(p){
     const links = collectLinks(p);
     if(!links.length) return "";
     return `<div class="side-card hide-mobile">
       <div class="side-card-head">${ICON.link}<span>연결된 자료 ${links.length}</span></div>
-      <div class="link-list">
-        ${(()=>{ let prev = null; return links.map((l,i)=>{
-          /* 하위 작업만 링크가 있는 단계는 들여쓰기만으로는 어디 소속인지 알 수 없다.
-             그런 단계에만 머리글을 세운다. 단계 자체에 링크가 있으면 그 줄이 머리글 노릇을 한다. */
-          const head = (l.kind === "sub" && l.stage !== prev)
-            ? `<div class="link-group">${iconFor(l.stage)}<span>${escapeHtml(l.stage)}</span></div>` : "";
-          prev = l.stage;
-          const cls = "link-item" + (l.kind === "sub" ? " sub" : "");
-          return head + (isLocalPath(l.url)
-            ? `<button class="${cls}" data-copylink="${i}" title="${escapeHtml(l.url)}">
-                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                 <span class="link-text">${escapeHtml(l.label)}</span>
-                 <span class="link-act">복사</span></button>`
-            : `<a class="${cls}" href="${l.url}" target="_blank" rel="noopener" title="${escapeHtml(l.url)}">
-                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>
-                 <span class="link-text">${escapeHtml(l.label)}</span>
-                 <span class="link-act">열기 ↗</span></a>`);
-        }).join(""); })()}
-      </div>
+      <div class="link-list">${linkRowsHtml(p)}</div>
     </div>`;
   }
 
@@ -4019,6 +4059,74 @@ try{
     }
     list.splice(at, 0, moved);
     save(); renderAll();
+  }
+
+  /* 메모는 눌러서 그 자리에서 고친다.
+     창을 띄웠다 닫는 건 한 줄 고치자고 하기엔 번거롭다.
+     Enter 로 저장, Shift+Enter 로 줄바꿈, Esc 로 되돌리기 — 창에서 쓰던 규칙 그대로다.
+     다른 데를 눌러도 저장된다(blur). 비우고 나가면 지우지 않고 원래 글로 되돌린다 —
+     지우는 건 ✕ 로만 한다. 잘못 지우는 것보다 안 지워지는 게 낫다. */
+  function beginNoteEdit(p, el, n){
+    el.classList.add("editing");
+    el.setAttribute("draggable", "false");
+    const textEl = el.querySelector(".note-text");
+    if(!textEl) return;
+
+    let color = n.color || "y";
+    const ta = document.createElement("textarea");
+    ta.className = "note-edit-area";
+    ta.value = n.text;
+    textEl.replaceWith(ta);
+
+    const grow = ()=>{ ta.style.height = "auto"; ta.style.height = ta.scrollHeight + "px"; };
+    grow();
+    ta.addEventListener("input", grow);
+
+    const colors = document.createElement("div");
+    colors.className = "note-edit-colors";
+    colors.innerHTML = Object.keys(NOTE_COLORS).map(k=>
+      `<button type="button" data-c="${k}" class="${k===color?"on":""}"
+        style="background:${NOTE_COLORS[k].bg};border-color:${NOTE_COLORS[k].line}"></button>`).join("");
+    ta.after(colors);
+    colors.addEventListener("click", (e)=>{
+      const b = e.target.closest("[data-c]");
+      if(!b) return;
+      color = b.dataset.c;
+      const c = NOTE_COLORS[color];
+      el.style.setProperty("--n-bg", c.bg);
+      el.style.setProperty("--n-line", c.line);
+      el.style.setProperty("--n-ink", c.ink);
+      colors.querySelectorAll("[data-c]").forEach(x=> x.classList.toggle("on", x === b));
+      ta.focus();
+    });
+
+    let done = false;
+    const finish = (keep)=>{
+      if(done) return;
+      done = true;
+      if(keep){
+        const t = ta.value.trim();
+        if(t) n.text = t;          // 비우고 나가면 원래 글을 지키다
+        n.color = color;
+        save();
+      }
+      renderAll();                 // 다시 그리면 편집 상태가 걷힌다
+    };
+
+    ta.addEventListener("keydown", (e)=>{
+      if(e.key === "Escape"){ e.preventDefault(); finish(false); return; }
+      if(e.key !== "Enter" || e.shiftKey) return;
+      if(e.isComposing || e.keyCode === 229) return;   // 한글 조합 중 Enter 는 확정용이다
+      e.preventDefault();
+      finish(true);
+    });
+    /* 색을 고르는 동안 잠깐 초점이 떠난다. 그때 저장해버리면 편집이 닫힌다. */
+    ta.addEventListener("blur", ()=> setTimeout(()=>{
+      if(!el.contains(document.activeElement)) finish(true);
+    }, 0));
+
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
   }
 
   function openNoteModal(p, note){
@@ -4385,8 +4493,9 @@ try{
     document.querySelectorAll("[data-note]").forEach(el=>{
       el.addEventListener("click", (e)=>{
         if(e.target.closest("[data-notedel]")) return;
+        if(el.classList.contains("editing")) return;      // 편집 중에는 그대로 둔다
         const n = (p.notes||[]).find(x=>x.id === el.dataset.note);
-        if(n && !inTrash) openNoteModal(p, n);
+        if(n && !inTrash) beginNoteEdit(p, el, n);
       });
     });
     document.querySelectorAll("[data-notedel]").forEach(el=>{
