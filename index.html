@@ -1413,15 +1413,33 @@ try{
      썸네일은 어차피 16:9 로 잘려 보이고 채널 이미지는 원으로 잘린다.
      안 보이는 픽셀까지 들고 있으면 용량만 커진다.
      인코딩은 WebP 우선 — 같은 화질에서 JPEG보다 눈에 띄게 작다. */
+  /* 받기 전에 크기를 본다.
+     저장되는 건 어차피 10KB 안팎이라 결과는 안전하다. 문제는 줄이기 전이다 —
+     파일을 통째로 메모리에 올리고 그림으로 펼쳐야 하는데, 4MB 짜리 JPEG 도
+     펼치면 48MB 를 쓴다. 카메라 원본을 그대로 끌어다 놓으면 화면이 멈춘다.
+     파일 크기만으로는 모자란다. 파일은 작은데 8000px 짜리 파노라마일 수 있다. */
+  const IMG_MAX_BYTES = 10 * 1024 * 1024;
+  const IMG_MAX_SIDE  = 8000;
+
   function encodeImage(file, opt, cb){
     const o = opt || {};
     const maxW = o.maxW || 480;
     const aspect = o.aspect || null;     // 16/9, 1 …  없으면 원본 비율
     const q = o.quality || 0.68;
+
+    if(file && file.size > IMG_MAX_BYTES){
+      showFleetingToast("사진이 너무 커요 (" + Math.round(file.size/1024/1024) + "MB). 10MB 이하로 줄여주세요", true);
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = ()=>{
       const img = new Image();
       img.onload = ()=>{
+        if(img.width > IMG_MAX_SIDE || img.height > IMG_MAX_SIDE){
+          showFleetingToast("사진이 너무 커요 (" + img.width + "×" + img.height + "). 8000px 이하로 줄여주세요", true);
+          return;
+        }
         let sx = 0, sy = 0, sw = img.width, sh = img.height;
         if(aspect){                      // 가운데 기준으로 비율에 맞춰 잘라낸다
           if(sw / sh > aspect){
