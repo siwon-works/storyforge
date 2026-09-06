@@ -496,6 +496,7 @@
   .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
   .modal-actions button{border:none;border-radius:var(--r-md);padding:9px 16px;font-size:var(--fs-sm);cursor:pointer;}
   .btn-primary{background:var(--accent);color:#fff;font-weight:600;}
+  .btn-primary:disabled{opacity:.35;cursor:not-allowed;}
   .btn-ghost{background:var(--bg);color:var(--sub);}
   .btn-ghost:hover{color:var(--text);}
   .new-ch-row{display:flex;gap:6px;margin-top:6px;}
@@ -1152,13 +1153,54 @@
     background:var(--bg);color:var(--text);font-size:var(--fs-md);font-family:inherit;
     text-align:center;letter-spacing:.06em;font-weight:600;margin-bottom:var(--sp-2);}
   .auth-field:focus{outline:2px solid var(--accent);outline-offset:-1px;}
+  /* 초대 코드 — 글자마다 색이 흐르게.
+     input 안의 글자는 하나씩 색을 못 칠한다. 그래서 진짜 글자는 투명하게 두고,
+     같은 자리에 색칠한 사본을 겹쳐 그린다. 둘의 글꼴·자간·여백이 한 픽셀이라도
+     어긋나면 티가 나므로 값을 한 곳(--code-*)에 모아두고 양쪽이 같이 쓴다. */
+  .code-wrap{position:relative;margin-bottom:var(--sp-2);
+    --code-pad-y:11px; --code-pad-x:13px; --code-ls:.14em; --code-lh:1.45;}
+  .code-wrap .auth-field{margin-bottom:0;color:transparent;caret-color:var(--accent);
+    letter-spacing:var(--code-ls);line-height:var(--code-lh);
+    padding:var(--code-pad-y) var(--code-pad-x);
+    transition:box-shadow .18s ease, border-color .18s ease;}
+  .code-wrap .auth-field::placeholder{color:var(--sub);letter-spacing:normal;font-weight:400;}
+  .code-wrap.filled .auth-field{border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-soft), 0 2px 10px rgba(37,99,235,.18);}
+  .code-ghost{position:absolute;inset:0;pointer-events:none;
+    padding:var(--code-pad-y) var(--code-pad-x);
+    font-family:inherit;font-size:var(--fs-md);font-weight:600;
+    letter-spacing:var(--code-ls);line-height:var(--code-lh);
+    text-align:center;white-space:pre;overflow:hidden;}
+  .code-ghost span{animation:code-pop .18s ease-out;}
+  @keyframes code-pop{from{opacity:0;transform:translateY(-3px);}to{opacity:1;transform:none;}}
   .auth-msg{font-size:var(--fs-sm);line-height:1.6;color:var(--sub);margin-top:var(--sp-3);
     min-height:1.3em;word-break:keep-all;}
   .auth-msg.err{color:var(--danger);}
+  /* 위험 구역 — 굵은 빨강을 남발하면 아무것도 눈에 안 띈다. 이름만 진하게 둔다. */
+  .danger-row{display:flex;align-items:center;gap:11px;padding:11px 13px;
+    border:1px solid var(--border);border-radius:var(--r-md);background:var(--panel);
+    cursor:pointer;text-align:left;color:var(--danger);font-family:inherit;
+    transition:border-color .12s ease, background .12s ease;}
+  .danger-row:hover{border-color:var(--danger);background:var(--accent-soft);}
+  .danger-row svg{flex:0 0 auto;}
+  .danger-row-txt{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .danger-row-txt b{font-size:var(--fs-sm);font-weight:600;}
+  .danger-row-txt i{font-style:normal;font-size:var(--fs-xs);color:var(--sub);}
+  .danger-row-arw{color:var(--sub);font-size:var(--fs-xs);flex:0 0 auto;}
+  /* 계정 삭제 확인 — 한 줄에 하나씩, 라벨과 내용을 나눠 읽게 한다 */
+  .del-facts{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;
+    border:1px solid var(--border);border-radius:var(--r-md);padding:13px 15px;
+    font-size:var(--fs-sm);line-height:1.6;margin-bottom:var(--sp-4);}
+  .del-facts dt{color:var(--sub);white-space:nowrap;}
+  .del-facts dd{margin:0;color:var(--text);}
+  .del-head{display:flex;align-items:center;gap:7px;font-size:var(--fs-sm);
+    font-weight:600;color:var(--danger);margin-bottom:var(--sp-2);}
   .auth-warn{border:1px solid var(--danger);border-radius:var(--r-md);padding:12px 14px;
     font-size:var(--fs-sm);line-height:1.7;color:var(--text);text-align:left;
     margin-bottom:var(--sp-3);word-break:keep-all;}
   .auth-warn b{color:var(--danger);}
+  .auth-warn-time{font-size:var(--fs-md);margin-bottom:6px;padding-bottom:6px;
+    border-bottom:1px solid var(--border);}
   .auth-who{font-size:var(--fs-xs);color:var(--sub);margin-top:var(--sp-4);}
   .auth-who button{background:none;border:none;color:var(--sub);text-decoration:underline;
     cursor:pointer;font-size:var(--fs-xs);font-family:inherit;padding:0;}
@@ -1823,7 +1865,10 @@ try{
   function showInvite(user, msg){
     authSub.textContent = "초대 코드가 있어야 시작할 수 있어요.";
     authBody.innerHTML =
-      '<input type="text" class="auth-field" id="inviteInput" placeholder="초대 코드" autocomplete="off" spellcheck="false">' +
+      '<div class="code-wrap" id="codeWrap">' +
+        '<input type="text" class="auth-field" id="inviteInput" placeholder="초대 코드" autocomplete="off" spellcheck="false">' +
+        '<div class="code-ghost" id="codeGhost"></div>' +
+      '</div>' +
       '<button class="auth-btn" id="inviteBtn">확인</button>';
     authWho.style.display = "";
     authWho.innerHTML = escapeHtml(user.email || "") +
@@ -1831,7 +1876,37 @@ try{
     document.getElementById("signOutLink").onclick = doSignOut;
     authSay(msg || "", !!msg);
 
-    const inp = document.getElementById("inviteInput");
+    const inp   = document.getElementById("inviteInput");
+    const ghost = document.getElementById("codeGhost");
+    const wrap  = document.getElementById("codeWrap");
+
+    /* 파랑(211°)에서 보라(272°)까지 글자 수에 맞춰 나눠 칠한다.
+       무지개로 돌리면 유치해지므로 앱 강조색 주변에서만 움직인다. */
+    function paint(){
+      const s = inp.value;
+      wrap.classList.toggle("filled", s.length > 0);
+      if(!s){ ghost.innerHTML = ""; return; }
+      const from = 211, to = 272;
+      ghost.innerHTML = s.split("").map(function(ch, i){
+        const t = s.length > 1 ? i / (s.length - 1) : 0;
+        const hue = Math.round(from + (to - from) * t);
+        return '<span style="color:hsl(' + hue + ',72%,55%)">' + escapeHtml(ch) + '</span>';
+      }).join("");
+    }
+    /* 소문자로 쳐도, 앞뒤에 공백이 붙어도 통과시킨다.
+       코드는 눈으로 옮겨 적거나 복사해서 붙여넣는 물건이라 둘 다 흔한 실수다. */
+    inp.addEventListener("input", function(){
+      const clean = inp.value.replace(/\s+/g, "").toUpperCase();
+      if(clean !== inp.value){
+        const atEnd = inp.selectionStart === inp.value.length;
+        const pos = inp.selectionStart;
+        inp.value = clean;
+        try{ inp.setSelectionRange(atEnd ? clean.length : pos, atEnd ? clean.length : pos); }catch(e){}
+      }
+      paint();
+    });
+    paint();
+
     function go(){
       const code = inp.value.trim();
       if(!code){ authSay("초대 코드를 입력해 주세요.", true); inp.focus(); return; }
@@ -1906,9 +1981,9 @@ try{
     authSub.textContent = "계정 삭제가 예약되어 있어요.";
     authBody.innerHTML =
       '<div class="auth-warn">' +
-        '남은 시간 <b>' + (h > 0 ? h + "시간 " : "") + m + '분</b><br>' +
-        '시간이 지나면 이야기·메모·채널이 <b>모두 지워지고</b> 되돌릴 수 없어요. ' +
-        '다시 가입하려면 <b>7일</b>을 기다려야 해요.' +
+        '<div class="auth-warn-time"><b>' + (h > 0 ? h + "시간 " : "") + m + '분</b> 남음</div>' +
+        '지나면 이야기·메모·채널 모두 삭제. 되돌릴 수 없음<br>' +
+        '재가입은 삭제 7일 뒤부터' +
       '</div>' +
       '<button class="auth-btn" id="undoDelBtn">삭제 취소하고 계속 쓰기</button>';
     authWho.style.display = "";
@@ -2040,6 +2115,8 @@ try{
        안 돼서 원인을 찾기 어렵다. 다른 기기에서 채널을 지웠을 때 실제로 생긴다. */
     if(s.channelFilter && !s.channels.some(c=>c.id === s.channelFilter)) s.channelFilter = null;
     if(typeof s.channelsCollapsed !== "boolean") s.channelsCollapsed = false;
+    // 없어진 현황 칸(진행 중/완료/이번 주 마감)의 필터가 남아 있으면 풀 방법이 없다
+    if(s.statFilter && s.statFilter !== "overdue" && s.statFilter !== "wrapup") s.statFilter = null;
     // 채널 0개는 "아직 시작 전"일 때만 허용. 이야기가 있는데 채널이 없으면
     // 그 이야기들이 미아가 되므로 기본 채널을 되살린다.
     if(!s.channels.length && (s.projects.length || s.trash.length)){
@@ -2836,17 +2913,23 @@ try{
       ? ()=>{ state.channelsCollapsed = !state.channelsCollapsed; save(); renderAll(); }
       : null;
 
-    if(chCollapsed){
+    /* 접었을 때 전부 감추면 지금 어느 채널을 보고 있는지 알 수 없다.
+       그래서 보고 있는 채널 한 줄만 남긴다. 전체 이야기를 보는 중이면 남길 게 없다. */
+    const shownChannels = chCollapsed
+      ? state.channels.filter(c => c.id === state.channelFilter)
+      : state.channels;
+
+    if(!shownChannels.length){
       chFilterEl.innerHTML = "";
     } else {
       const activeProjects = state.projects.filter(p=>!p.completed || state.showCompleted);
       chFilterEl.innerHTML = `
         <div class="sidebar-ch-filter" id="chFilterList">
-          ${state.channels.map(c=>{
+          ${shownChannels.map(c=>{
             const cnt = activeProjects.filter(p=>p.channelId===c.id).length;
             return `<div class="ch-row-wrap" data-ch-row="${c.id}">
               <div class="ch-drop-indicator"></div>
-              <button data-ch="${c.id}" class="${state.channelFilter===c.id?'active':''}" draggable="true">
+              <button data-ch="${c.id}" class="${state.channelFilter===c.id?'active':''}" draggable="${chCollapsed?'false':'true'}">
                 ${chAvatarHtml(c,18)}<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.name}</span><span class="ch-count-badge">${cnt}</span>
               </button>
             </div>`;
@@ -2857,7 +2940,9 @@ try{
       const listEl = document.getElementById("chFilterList");
       chFilterEl.querySelectorAll("[data-ch]").forEach(b=>{
         b.addEventListener("click", ()=>{
-          state.channelFilter = (state.channelFilter === b.dataset.ch) ? null : b.dataset.ch;
+          /* 선택된 채널을 다시 눌러도 유지한다. 예전엔 토글로 필터를 풀었지만
+             바로 위에 "전체 이야기"가 있어서, 선택이 풀리는 게 놀랍기만 하다. */
+          state.channelFilter = b.dataset.ch;
           state.view = "all"; state.active = null;
           save(); renderAll();
         });
@@ -2873,6 +2958,8 @@ try{
       });
 
       // drag reorder with insertion-line indicator
+      // 접혀 있으면 목록이 한 줄뿐이라 순서를 바꿀 것도, 바꿀 방법도 없다
+      if(!chCollapsed){
       let dragChId = null;
       chFilterEl.querySelectorAll('[data-ch]').forEach(b=>{
         b.addEventListener("dragstart", (e)=>{
@@ -2920,6 +3007,7 @@ try{
         state.channels.splice(insertIdx, 0, dragged);
         save(); renderAll();
       });
+      }
     }
     document.getElementById("addChBtnSidebar").onclick = ()=> openChannelModal(null, ()=>renderAll());
 
@@ -2949,7 +3037,21 @@ try{
   }
 
   // ---------- body ----------
+  /* 경고 칸은 해당되는 게 있을 때만 뜬다. 필터를 걸어둔 채 그 건수가 0이 되면
+     칸이 사라져서 해제할 방법이 없어지고, 빈 목록에 갇힌다. 그리기 전에 풀어준다. */
+  function pruneStatFilter(){
+    const f = state.statFilter;
+    if(!f) return;
+    let list = state.projects;
+    if(state.channelFilter) list = list.filter(p=>p.channelId === state.channelFilter);
+    const n = f === "overdue" ? list.filter(isOverdue).length
+            : f === "wrapup"  ? list.filter(needsPublish).length
+            : 0;
+    if(!n) state.statFilter = null;
+  }
+
   function renderBody(){
+    pruneStatFilter();
     const body = document.getElementById("body");
     const headTitleWrap = document.getElementById("headTitleWrap");
     const headDot = document.getElementById("headDot");
@@ -3475,21 +3577,14 @@ try{
     const t = uploadTs(p);
     return !p.completed && t !== null && t < Date.now();
   }
-  function isDueThisWeek(p){
-    const t = uploadTs(p), now = Date.now();
-    return !p.completed && t !== null && t >= now && t <= now + 7*24*60*60*1000;
-  }
 
   /* 목록에 실제로 보이는 이야기. 격자와 이전/다음 이동이 같은 순서를 써야
      "다음"이 화면에 보이는 그 다음 카드가 된다. */
   function visibleProjects(){
     const sf = state.statFilter;
     let list = state.projects.slice();
-    if(sf === "active")       list = list.filter(p=>!p.completed);
-    else if(sf === "done")    list = list.filter(p=>p.completed);
-    else if(sf === "overdue") list = list.filter(isOverdue);
-    else if(sf === "soon")    list = list.filter(isDueThisWeek);
-    else if(sf === "wrapup")  list = list.filter(needsPublish);
+    if(sf === "overdue")     list = list.filter(isOverdue);
+    else if(sf === "wrapup") list = list.filter(needsPublish);
     else list = list.filter(p=>!p.completed || state.showCompleted);
 
     if(state.channelFilter) list = list.filter(p=>p.channelId===state.channelFilter);
@@ -3511,34 +3606,23 @@ try{
     return pcts.slice(0, n-1).every(x=>x === 100);      // 나머지는 전부 완료
   }
 
-  /* 상단 현황 요약 — 지금 보고 있는 범위(전체 또는 선택한 채널) 기준 */
+  /* 상단 경고 줄 — 지금 보고 있는 범위(전체 또는 선택한 채널) 기준.
+
+     예전에는 "진행 중 / 이번 주 마감 / 완료" 를 항상 띄웠다. 그런데 그 숫자는
+     전부 다른 데서 이미 보인다 — 진행 중은 아래 카드 개수, 완료는 툴바의
+     "완료 보기", 이번 주 마감은 임박순 정렬이 알아서 위로 올려준다.
+     화면 맨 윗줄을 늘 차지할 값어치가 없어서 지웠다.
+
+     남긴 둘은 성격이 다르다. 손이 필요한 상태일 때만 나타나는 경고다.
+     평소에는 아무것도 안 뜨고, 뜨면 그게 곧 신호가 된다. */
   function statRowHtml(){
     let list = state.projects;
     if(state.channelFilter) list = list.filter(p=>p.channelId === state.channelFilter);
     if(!list.length) return "";
 
-    const done = list.filter(p=>p.completed).length;
-    const active = list.length - done;
-
-    // 앞으로 7일 안에 업로드 예정인 건
-    const now = Date.now(), week = now + 7*24*60*60*1000;
-    let soon = 0, overdue = 0;
-    list.forEach(p=>{
-      if(p.completed || !p.uploadAt) return;
-      const t = new Date(p.uploadAt).getTime();
-      if(isNaN(t)) return;
-      if(t < now) overdue++;
-      else if(t <= week) soon++;
-    });
-
-    const avg = active
-      ? Math.round(list.filter(p=>!p.completed).reduce((a,p)=>a+progressOf(p).overall,0) / active)
-      : 100;
-
-    // filter 가 있으면 누를 수 있는 칸이 된다
-    /* 칸은 전부 같은 규칙을 따른다 — 모두 개수를 세고 모두 누를 수 있다.
-       "평균 진행률" 같은 평균값은 걸러낼 대상이 없어 칸으로 두지 않고
-       진행 중 칸의 보조 정보로 붙인다. 섞여 있으면 뭘 누를 수 있는지 알 수 없다. */
+    const overdue = list.filter(isOverdue).length;
+    const wrapUp  = list.filter(needsPublish).length;
+    if(!overdue && !wrapUp) return "";
     const cell = (label, value, unit, color, filter, cls, sub)=>{
       const on = state.statFilter === filter;
       return `<div class="stat ${cls||''} ${on?'on':''}" style="--stat-c:${color}" data-statf="${filter}">
@@ -3551,15 +3635,9 @@ try{
        </div>`;
     };
 
-    const wrapUp = list.filter(needsPublish).length;
-
     return `<div class="stat-row">
-      ${cell("진행 중", active, "개", "var(--accent)", "active", "", `평균 ${avg}% 진행`)}
-      ${cell(overdue ? "예정일 지남" : "이번 주 마감", overdue || soon, "건",
-             overdue ? "var(--danger)" : "#e0895f",
-             overdue ? "overdue" : "soon", overdue ? "urgent" : "")}
-      ${wrapUp ? cell("마무리만 남음", wrapUp, "건", "#c9a227", "wrapup", "wrapup") : ""}
-      ${cell("완료", done, "개", "var(--ok)", "done")}
+      ${overdue ? cell("예정일 지남", overdue, "건", "var(--danger)", "overdue", "urgent") : ""}
+      ${wrapUp  ? cell("마무리만 남음", wrapUp, "건", "#c9a227", "wrapup", "wrapup") : ""}
     </div>`;
   }
 
@@ -4584,12 +4662,16 @@ try{
         <input type="file" accept="application/json,.json" id="importFile" class="file-hidden">
         <div style="margin-top:var(--sp-3);border:1px solid var(--danger);border-radius:var(--r-md);padding:10px;display:flex;flex-direction:column;gap:6px;">
           <div style="font-size:var(--fs-xs);font-weight:700;color:var(--danger);padding:0 4px 2px;">위험 구역</div>
-          <button type="button" id="resetRow" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--panel);cursor:pointer;font-size:var(--fs-sm);color:var(--danger);text-align:left;">
-            ${ICON.destroy}<span style="flex:1;">모든 데이터 초기화 <span style="color:var(--sub);font-size:var(--fs-sm);">(계정은 남아요)</span></span><span style="color:var(--sub);font-size:var(--fs-sm);">▶</span>
+          <button type="button" id="resetRow" class="danger-row">
+            ${ICON.destroy}
+            <span class="danger-row-txt"><b>모든 데이터 초기화</b><i>이야기만 지운다. 계정은 유지</i></span>
+            <span class="danger-row-arw">▶</span>
           </button>
           ${sb && authedUser ? `
-          <button type="button" id="delAcctRow" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--panel);cursor:pointer;font-size:var(--fs-sm);color:var(--danger);text-align:left;">
-            ${ICON.userx}<span style="flex:1;">계정 삭제 <span style="color:var(--sub);font-size:var(--fs-sm);">(탈퇴)</span></span><span style="color:var(--sub);font-size:var(--fs-sm);">▶</span>
+          <button type="button" id="delAcctRow" class="danger-row">
+            ${ICON.userx}
+            <span class="danger-row-txt"><b>계정 삭제</b><i>탈퇴. 24시간 뒤 완전 삭제</i></span>
+            <span class="danger-row-arw">▶</span>
           </button>` : ``}
         </div>
       </div>
@@ -4620,14 +4702,15 @@ try{
                 + state.trash.reduce((a,p)=> a + ((p.notes||[]).length), 0)
                 + (state.noteTrash||[]).length;
     openModal("계정 삭제", `
-      <div class="alert-box">
-        <span class="alert-icon">⚠️</span>
-        <p><b>이야기 ${stories}개 · 메모 ${notes}개 · 채널 ${state.channels.length}개</b>가 모두 영구 삭제돼요.<br>
-        이 브라우저의 저장분과 <b>클라우드 저장소 양쪽 모두</b> 지워져요.<br>
-        <b>24시간 안에 다시 로그인하면 취소</b>할 수 있어요. 그 뒤에는 되돌릴 수 없어요.<br>
-        삭제가 끝나면 <b>7일 동안 다시 가입할 수 없어요.</b></p>
-      </div>
-      <p class="modal-question">확인을 위해 <b>${escapeHtml(email)}</b> 를 입력해 주세요.</p>
+      <div class="del-head">⚠️ 되돌릴 수 없음</div>
+      <dl class="del-facts">
+        <dt>삭제 대상</dt><dd>이야기 ${stories} · 메모 ${notes} · 채널 ${state.channels.length}</dd>
+        <dt>삭제 범위</dt><dd>이 브라우저 + 클라우드</dd>
+        <dt>실행 시점</dt><dd>24시간 뒤</dd>
+        <dt>취소</dt><dd>24시간 안에 다시 로그인</dd>
+        <dt>재가입</dt><dd>삭제 7일 뒤부터</dd>
+      </dl>
+      <p class="modal-question" style="margin-bottom:var(--sp-2);">확인을 위해 <b>${escapeHtml(email)}</b> 입력</p>
       <input type="text" id="delMail" class="auth-field" style="text-align:left;letter-spacing:0;font-weight:400;margin-bottom:0;" placeholder="${escapeHtml(email)}" autocomplete="off" spellcheck="false">
       <div class="modal-actions">
         <button class="btn-ghost" id="cancelBtn">취소</button>
