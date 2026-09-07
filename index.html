@@ -1728,13 +1728,88 @@ try{
       touched = true;
     });
 
-    // 제목·날짜·채널·썸네일·완료 같은 이야기 전체 항목
-    const head = (x)=> x ? JSON.stringify({name:x.name, uploadAt:x.uploadAt,
-      channelId:x.channelId, completed:!!x.completed, thumbnail:x.thumbnail || null}) : "";
-    if(head(p) !== head(base)) touched = true;
+    /* 제목·날짜·채널·썸네일·완료에는 따로 도장을 둔다.
+       이야기 도장(updatedAt)은 단계를 바꿔도 갱신되므로, 그걸로 제목을 견주면
+       "나는 단계만 만졌는데 내 쪽이 최신" 이 되어 남의 제목 수정을 덮어쓴다. */
+    if(headCore(p) !== headCore(base)){
+      p.headAt = now; p.headBy = who;
+      touched = true;
+    }
 
     if(touched){ p.updatedAt = now; p.updatedBy = who; }
     return touched;
+  }
+  function headCore(x){
+    if(!x) return "";
+    return JSON.stringify({name:x.name, uploadAt:x.uploadAt, channelId:x.channelId,
+                           completed:!!x.completed, thumbnail:x.thumbnail || null});
+  }
+
+  /* ---- 동시 편집 병합 ----
+
+     이야기 하나가 DB에서 한 행이라, 저장할 때 덩어리를 통째로 덮어쓴다.
+     둘이 다른 단계를 동시에 체크하면 나중에 저장한 쪽이 상대 체크를 지운다.
+
+     그래서 저장 직전에 서버 것을 다시 읽고, 조각마다 최신인 쪽을 골라 합친다.
+     같은 조각을 정말 동시에 만졌을 때만 마지막 사람이 이긴다 — 그건 못 없앤다.
+
+     단계는 자리(index)로 짝을 맞춘다. 이 앱에서 단계는 이야기를 만들 때 정해지고
+     이름만 바뀌므로, 자리가 곧 그 단계다. */
+  /* 합친 결과를 로컬 상태에 되돌려 넣는다.
+     이걸 안 하면 서버에는 상대 체크가 들어갔는데 내 화면에는 없다.
+     입력 중이면 화면만 나중에 그린다 — 커서가 날아가면 그게 더 성가시다. */
+  function adoptMerged(id, merged){
+    const list = state.projects.some(p=>p.id===id) ? state.projects : state.trash;
+    const i = list.findIndex(p=>p.id===id);
+    if(i < 0) return;
+    const keep = {_ro: list[i]._ro};
+    const next = JSON.parse(JSON.stringify(merged));
+    delete next._trashed;
+    list[i] = Object.assign(next, keep);
+    try{ localStorage.setItem("yadam-state-v5", JSON.stringify(state)); }catch(e){}
+    const ae = document.activeElement;
+    const busy = document.querySelector(".overlay") ||
+      (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable));
+    if(!busy) renderAll();
+  }
+
+  function mergeProject(mine, theirs){
+    if(!theirs) return mine;
+    const out = JSON.parse(JSON.stringify(mine));
+
+    const ms = mine.stages || [], ts = theirs.stages || [];
+    const n = Math.max(ms.length, ts.length);
+    out.stages = [];
+    for(let i = 0; i < n; i++){
+      const a = ms[i], b = ts[i];
+      if(!a){ out.stages.push(JSON.parse(JSON.stringify(b))); continue; }
+      if(!b){ out.stages.push(a); continue; }
+      // 도장이 같거나 없으면 내 것을 쓴다 — 그래야 새로 만든 이야기가 흔들리지 않는다
+      out.stages.push((b.updatedAt || 0) > (a.updatedAt || 0)
+        ? JSON.parse(JSON.stringify(b)) : a);
+    }
+
+    /* 메모는 아이디로 합친다. 한쪽에만 있으면 살린다 — 잃는 것보다 낫다.
+       내가 지운 메모를 상대가 아직 갖고 있으면 되살아날 수 있는데,
+       다시 지우면 되므로 감수한다. 반대로 하면 남이 방금 쓴 메모가 사라진다. */
+    const byId = new Map();
+    (theirs.notes || []).forEach(nt=> byId.set(nt.id, nt));
+    (mine.notes || []).forEach(nt=> byId.set(nt.id, nt));
+    out.notes = Array.from(byId.values());
+
+    // 머리말은 headAt 으로 견준다
+    if((theirs.headAt || 0) > (mine.headAt || 0)){
+      out.name = theirs.name;
+      out.uploadAt = theirs.uploadAt;
+      out.channelId = theirs.channelId;
+      out.completed = !!theirs.completed;
+      out.thumbnail = theirs.thumbnail || null;
+      out.headAt = theirs.headAt;
+      out.headBy = theirs.headBy;
+    }
+
+    out.updatedAt = Math.max(mine.updatedAt || 0, theirs.updatedAt || 0);
+    return out;
   }
 
   /* 클라우드로 나가는 유일한 통로. 공유받은 이야기는 여기서 빠진다.
@@ -1812,8 +1887,22 @@ try{
       const json = JSON.stringify(want[id]);
       if(json.length > DOC_LIMIT){ oversize++; return; }
       const cid = chIds.has(want[id].channelId) ? want[id].channelId : null;
-      jobs.push(()=> db.doc("projects/" + id).set(want[id], {channel_id: cid})
-                       .then(()=>{ lastSent.set(id, json); }));
+
+      /* 둘 이상이 쓰는 채널이면 덮어쓰기 전에 서버 것을 다시 읽고 합친다.
+         혼자 쓰는 채널에서는 아무도 바꿀 수 없으므로 왕복을 아낀다. */
+      const ch = state.channels.find(c=>c.id === want[id].channelId);
+      if(!isCollab(ch)){
+        jobs.push(()=> db.doc("projects/" + id).set(want[id], {channel_id: cid})
+                         .then(()=>{ lastSent.set(id, json); }));
+        return;
+      }
+      jobs.push(()=> db.doc("projects/" + id).get().then(function(snap){
+        const merged = mergeProject(want[id], snap.exists ? snap.data() : null);
+        // 합친 결과를 로컬에도 반영한다. 안 그러면 화면과 서버가 어긋난다.
+        adoptMerged(id, merged);
+        return db.doc("projects/" + id).set(merged, {channel_id: cid})
+          .then(()=>{ lastSent.set(id, JSON.stringify(merged)); });
+      }));
     });
     Array.from(lastSent.keys()).forEach(id=>{
       if(want[id]) return;
@@ -2162,10 +2251,17 @@ try{
             delete: function(){
               return client.from("projects").delete().eq("user_id", uid).eq("id", id).then(must);
             },
+            /* user_id 로 거르지 않는다 — 병합하려면 남이 만든 이야기도 읽어야 한다.
+               어차피 접근 규칙이 "내 것 + 내가 멤버인 채널의 것" 만 돌려준다. */
             get: function(){
-              return client.from("projects").select("data").eq("user_id", uid).eq("id", id)
-                .maybeSingle().then(must)
-                .then(function(res){ return snapOf(res.data ? res.data.data : null); });
+              return client.from("projects").select("data,user_id").eq("id", id)
+                .limit(1).then(must)
+                .then(function(res){
+                  const row = (res.data || [])[0];
+                  const snap = snapOf(row ? row.data : null);
+                  snap.userId = row ? row.user_id : null;
+                  return snap;
+                });
             }
           };
         }
