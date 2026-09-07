@@ -1402,12 +1402,16 @@
 (function(){
 try{
   const COLORS = ["#7a5cff","#e0895f","#4fb0a5","#d95c8a","#5c9be0","#c6a15b","#8a6fd6","#5aa0a0"];
+  /* 새 이야기를 만들 때 붙는 기본 구성. 설정에서 바꿀 수 있고,
+     바꾼 구성은 앞으로 만들 이야기부터 적용된다. */
+  /* 템플릿의 subtasks 는 문자열 배열이다. newProject 가 {t, done} 으로 감싼다.
+     객체를 넣으면 한 겹 더 감싸져 화면에 [object Object] 로 나온다. */
   const DEFAULT_STAGE_TEMPLATE = [
-    {name:"대본", icon:"📝", url:"", subtasks:[]},
-    {name:"이미지", icon:"🖼️", url:"", subtasks:[]},
-    {name:"인트로", icon:"🎬", url:"", subtasks:[]},
-    {name:"썸네일", icon:"🏷️", url:"", subtasks:[]},
-    {name:"업로드", icon:"🚀", url:"", subtasks:[]},
+    {name:"대본",   icon:"📝",  url:"", subtasks:["작성하기","오늘의 이야기 요약글","카피확정"]},
+    {name:"이미지", icon:"🖼️", url:"", subtasks:["flow prompt 파일 생성하기","캐릭터 + 영상 이미지 뽑기"]},
+    {name:"인트로", icon:"🎬",  url:"", subtasks:["만들기","영상합치기"]},
+    {name:"썸네일", icon:"🏷️", url:"", subtasks:["만들기"]},
+    {name:"업로드", icon:"🚀",  url:"", subtasks:["본편","숏츠"]},
   ];
   const WEEKDAYS = ["일","월","화","수","목","금","토"];
   const STAGE_ICONS = {"대본":"📝","이미지":"🖼️","인트로":"🎬","썸네일":"🏷️","업로드":"🚀"};
