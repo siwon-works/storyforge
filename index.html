@@ -302,11 +302,10 @@
   .member-mail{display:block;font-size:var(--fs-xs);color:var(--sub);font-weight:400;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .member-kick{flex:0 0 auto;border:1px solid var(--border);background:var(--panel);
-    color:var(--sub);border-radius:var(--r-sm);padding:5px 8px;cursor:pointer;
-    font-size:var(--fs-xs);display:inline-flex;align-items:center;}
-  .member-kick .btn-icon{width:13px;height:13px;}
+    color:var(--sub);border-radius:var(--r-sm);padding:5px 10px;cursor:pointer;
+    font-size:var(--fs-xs);font-family:inherit;white-space:nowrap;
+    transition:border-color .12s ease, color .12s ease;}
   .member-kick:hover{border-color:var(--danger);color:var(--danger);}
-  .member-kick.confirm{border-color:var(--danger);color:#fff;background:var(--danger);font-weight:700;}
   .member-role{font-size:var(--fs-xs);color:var(--sub);flex:0 0 auto;}
   .ch-group-label{font-size:var(--fs-xs);color:var(--sub);font-weight:700;
     padding:10px 8px 4px;margin-top:2px;border-top:1px solid var(--border);}
@@ -5161,6 +5160,44 @@ try{
 
   /* 이 채널을 함께 쓰는 사람들. 이름은 각자가 적어둔 표시 이름이다 —
      계정 이메일은 아무에게도 보여주지 않는다. */
+  /* 남을 채널에서 빼는 일이라 확인을 받는다. 이 앱은 되돌릴 수 없는 동작에
+     늘 확인 창을 쓴다 — 여기만 인라인으로 처리하면 그게 더 놀랍다. */
+  function confirmKick(c, btn){
+    const name = btn.dataset.name || "이 사람";
+    const mail = btn.dataset.mail || "";
+    openSubModal("내보내기", `
+      <dl class="facts">
+        <dt>대상</dt><dd><b>${escapeHtml(name)}</b>${mail ? `<br><span style="color:var(--sub);font-size:var(--fs-xs);">${escapeHtml(mail)}</span>` : ""}</dd>
+        <dt>채널</dt><dd>${escapeHtml(c.name)}</dd>
+        <dt>그 뒤</dt><dd>이 채널이 상대 목록에서 사라집니다</dd>
+        <dt>다시 넣으려면</dt><dd>초대 링크를 새로 만들어야 합니다</dd>
+      </dl>
+      <p class="modal-question">내보낼까요?</p>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="kkCancel">취소</button>
+        <button class="btn-primary" id="kkOk" style="background:var(--danger)">내보내기</button>
+      </div>`, (m2)=>{
+        m2.querySelector("#kkCancel").onclick = closeSubModal;
+        m2.querySelector("#kkOk").onclick = ()=>{
+          const ok = m2.querySelector("#kkOk");
+          ok.disabled = true; ok.textContent = "내보내는 중…";
+          sb.from("channel_members").delete()
+            .eq("channel_id", c.id).eq("user_id", btn.dataset.kick)
+            .then(function(res){
+              if(res.error) throw res.error;
+              closeSubModal();
+              const row = btn.closest(".member-row");
+              if(row) row.remove();
+              showFleetingToast(name + " 님을 내보냈어요");
+            })
+            .catch(function(e){
+              ok.disabled = false; ok.textContent = "내보내기";
+              showFleetingToast(authErrText(e), true);
+            });
+        };
+      });
+  }
+
   function openMembersModal(c){
     openModal("멤버", `
       <dl class="facts"><dt>채널</dt><dd>${escapeHtml(c.name)}</dd></dl>
@@ -5187,37 +5224,12 @@ try{
                   <span class="member-mail">${escapeHtml(r.member_email || "")}</span></span>
                 <span class="member-role">${ROLE_LABEL[r.member_role] || r.member_role}</span>
                 ${canKick ? `<button class="member-kick" data-kick="${escapeHtml(r.member_id)}"
-                   title="내보내기">${ICON.leave}</button>` : ""}
+                   data-name="${escapeHtml(r.member_name || "")}"
+                   data-mail="${escapeHtml(r.member_email || "")}">내보내기</button>` : ""}
               </div>`;
             }).join("");
             box.querySelectorAll("[data-kick]").forEach(function(btn){
-              btn.onclick = function(){
-                const row = btn.closest(".member-row");
-                const who = row.querySelector(".member-name").textContent.trim();
-                if(btn.dataset.confirm !== "1"){
-                  btn.dataset.confirm = "1";
-                  btn.classList.add("confirm");
-                  btn.textContent = "정말?";
-                  setTimeout(function(){
-                    if(btn.dataset.confirm !== "1") return;
-                    btn.dataset.confirm = ""; btn.classList.remove("confirm");
-                    btn.innerHTML = ICON.leave;
-                  }, 3000);
-                  return;
-                }
-                btn.disabled = true; btn.textContent = "…";
-                sb.from("channel_members").delete()
-                  .eq("channel_id", c.id).eq("user_id", btn.dataset.kick)
-                  .then(function(res){
-                    if(res.error) throw res.error;
-                    row.remove();
-                    showFleetingToast(who + " 님을 내보냈어요");
-                  })
-                  .catch(function(e){
-                    btn.disabled = false; btn.innerHTML = ICON.leave;
-                    showFleetingToast(authErrText(e), true);
-                  });
-              };
+              btn.onclick = function(){ confirmKick(c, btn); };
             });
           })
           .catch(function(e){
