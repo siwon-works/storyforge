@@ -5102,6 +5102,12 @@ try{
             out.innerHTML = `<div class="auth-msg err">이메일을 확인해주세요.</div>`;
             return;
           }
+          /* 내 이메일로 만들면 링크를 눌러본 뒤에야 "내가 만든 채널입니다" 를 만난다.
+             서버도 거절하지만, 여기서 미리 막는 게 낫다. */
+          if(authedUser && mail === String(authedUser.email || "").toLowerCase()){
+            out.innerHTML = `<div class="auth-msg err">본인 이메일입니다. 함께 쓸 사람의 이메일을 넣어주세요.</div>`;
+            return;
+          }
           const btn = m.querySelector("#invOk");
           btn.disabled = true; btn.textContent = "만드는 중…";
           const token = uid() + Math.random().toString(36).slice(2, 10);
