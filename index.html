@@ -1558,6 +1558,7 @@ try{
   var pendingRemote = null;
   var remoteProjects = null;     // 마지막 스냅샷의 프로젝트 목록
   var remoteMeta = null;
+  var remoteChannels = null;     // 채널 표의 마지막 스냅샷 (행 배열)
   var remoteReadAt = 0;          // 마지막 원격 조회를 시작한 시각
   var DOC_LIMIT = 250000;        // 문서 1개 256KiB 제한에 대한 안전 여유
 
@@ -1683,8 +1684,24 @@ try{
     const byOrder = (a,b)=> (a.order||0) - (b.order||0);
     projects.sort(byOrder); trash.sort(byOrder);
 
+    /* 채널은 이제 표가 원본이다. meta.data.channels 는 예비로 남겨둔다 —
+       표가 비어 있는 사람(마이그레이션 이후에 가입했다가 표 쓰기가 실패한 경우 등)은
+       meta 로 버티고, flushSync 가 표를 채워준다.
+       표 행에 없는 항목은 로컬 것을 그대로 둔다. 안 그러면 앱이 쓰는 즉시
+       "표에서 읽은 것"과 "로컬"이 계속 달라 보여 화면이 덜컹거린다. */
+    const localCh = new Map(state.channels.map(c=>[c.id, c]));
+    const fromRows = (rows)=> rows.map(function(r){
+      const base = localCh.get(r.id) || {};
+      return Object.assign({}, base, {
+        id: r.id,
+        name: r.name,
+        color: r.color != null ? r.color : (base.color || null),
+        image: r.image != null ? r.image : (base.image || null)
+      });
+    });
     const nextData = {projects, trash,
-      channels: snap.meta && snap.meta.channels ? clone(snap.meta.channels) : state.channels,
+      channels: (snap.channels && snap.channels.length) ? fromRows(snap.channels)
+              : (snap.meta && snap.meta.channels ? clone(snap.meta.channels) : state.channels),
       stageTemplate: snap.meta && snap.meta.stageTemplate ? clone(snap.meta.stageTemplate) : state.stageTemplate,
       noteTrash: snap.meta && snap.meta.noteTrash ? clone(snap.meta.noteTrash) : (state.noteTrash || [])};
     const cur = {projects: state.projects, trash: state.trash,
@@ -1836,7 +1853,7 @@ try{
   var authedUser = null;      // 계정 삭제 화면에서 이메일 확인에 쓴다
 
   function makeSupabaseDb(client, uid){
-    const projWatch = [], metaWatch = [];
+    const projWatch = [], metaWatch = [], chanWatch = [];
     let polling = false;
 
     // supabase-js 는 오류를 던지지 않고 {data, error} 로 돌려준다. 여기서 던져준다.
@@ -1875,6 +1892,12 @@ try{
           snap.readAt = t0;
           metaWatch.forEach(function(w){ w.cb(snap); });
         }).catch(function(e){ metaWatch.forEach(function(w){ if(w.err) w.err(e); }); });
+      }
+      if(chanWatch.length){
+        readChannels().then(function(res){
+          const snap = {rows: res.data || [], readAt: t0};
+          chanWatch.forEach(function(w){ w.cb(snap); });
+        }).catch(function(e){ chanWatch.forEach(function(w){ if(w.err) w.err(e); }); });
       }
     }
     function startPolling(){
@@ -1958,7 +1981,8 @@ try{
             },
             deleteAll: function(){
               return client.from("channels").delete().eq("owner_id", uid).then(must);
-            }
+            },
+            onSnapshot: function(cb, err){ chanWatch.push({cb: cb, err: err}); startPolling(); }
           };
         }
         return {
@@ -1987,9 +2011,8 @@ try{
                  db.collection("channels").get()])
       .then(function(res){
         const projSnap = res[0], metaSnap = res[1], chSnap = res[2];
-        /* 채널 표는 아직 읽는 데 쓰지 않는다. 표에 뭐가 있는지만 기억해 두고,
-           비어 있으면 flushSync 가 로컬 채널을 올려서 채운다. */
         primeChannelsSent(chSnap.rows);
+        remoteChannels = chSnap.rows;
         if(projSnap.empty && !metaSnap.exists){
           // 저장소가 비어 있다 -> 지금 로컬 상태를 최초 1회 씨딩
           dbReady = true;
@@ -2000,11 +2023,17 @@ try{
           pendingRemote = {
             projects: projSnap.docs.map(function(d){ return d.data(); }),
             meta: metaSnap.exists ? metaSnap.data() : null,
+            channels: chSnap.rows,
             readAt: startedAt
           };
           applyRemote();
           dbReady = true;
           rememberSent();
+          /* meta.data.channels 는 되돌리기용 예비본이다. 표에서 읽은 채널과
+             어긋나 있으면 낡은 것이므로, 다시 쓰도록 표시만 지운다.
+             (rememberSent 가 방금 "보낸 셈 치고" 기억해버린 것을 취소한다) */
+          const metaCh = (metaSnap.exists && metaSnap.data() && metaSnap.data().channels) || [];
+          if(JSON.stringify(metaCh) !== JSON.stringify(state.channels)) lastMetaSent = null;
           setSyncStatus("ok", "동기화됨");
         }
         subscribe();
@@ -2025,13 +2054,24 @@ try{
       db.collection("projects").onSnapshot(function(snap){
         remoteProjects = snap.docs.map(function(d){ return d.data(); });
         remoteReadAt = snap.readAt || Date.now();
-        pendingRemote = {projects: remoteProjects, meta: remoteMeta, readAt: remoteReadAt};
+        pendingRemote = {projects: remoteProjects, meta: remoteMeta,
+                         channels: remoteChannels, readAt: remoteReadAt};
         applyRemote();
       }, onSubErr);
       db.doc("meta/app").onSnapshot(function(snap){
         remoteMeta = snap.exists ? snap.data() : null;
         if(remoteProjects){
           pendingRemote = {projects: remoteProjects, meta: remoteMeta,
+                           channels: remoteChannels,
+                           readAt: Math.min(remoteReadAt || 0, snap.readAt || Date.now())};
+          applyRemote();
+        }
+      }, onSubErr);
+      db.collection("channels").onSnapshot(function(snap){
+        remoteChannels = snap.rows;
+        if(remoteProjects){
+          pendingRemote = {projects: remoteProjects, meta: remoteMeta,
+                           channels: remoteChannels,
                            readAt: Math.min(remoteReadAt || 0, snap.readAt || Date.now())};
           applyRemote();
         }
