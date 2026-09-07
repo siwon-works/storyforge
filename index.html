@@ -554,9 +554,13 @@
   .modal-subject .ms-name{font-weight:700;font-size:var(--fs-md);}
   .modal-subject .ms-sub{font-size:var(--fs-sm);color:var(--sub);margin-top:2px;}
   .modal-question{font-size:var(--fs-sm);color:var(--sub);margin:14px 0 0;}
+  .modal-lead{font-size:var(--fs-sm);color:var(--sub);margin:0 0 14px;line-height:1.7;}
+  .modal-lead b{color:var(--text);font-weight:700;}
+  .modal-hint{font-size:var(--fs-xs);color:var(--sub);line-height:1.7;margin:12px 0 0;}
   .field{margin-bottom:14px;}
   .field label{display:block;font-size:var(--fs-sm);color:var(--sub);margin-bottom:5px;}
-  .field input[type=text],.field select{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg);color:var(--text);font-size:var(--fs-sm);}
+  .field input[type=text],.field input[type=email],.field select{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg);color:var(--text);font-size:var(--fs-sm);}
+  .field input:focus{outline:2px solid var(--accent);outline-offset:-1px;}
   .field-row{display:flex;gap:8px;}
   .field-row .field{flex:1;}
   .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
@@ -3426,8 +3430,7 @@ try{
           }
           return [
             {icon:ICON.edit, label:"채널 수정", action:()=>openChannelModal(c, ()=>renderAll())},
-            {icon:ICON.shared, label:"멤버 보기" + (isCollab(c) ? " " + c.memberCount : ""),
-             action:()=>openMembersModal(c)},
+            {icon:ICON.shared, label:"멤버 보기", action:()=>openMembersModal(c)},
             {icon:ICON.link, label:"초대 링크 만들기", action:()=>openInviteModal(c)},
             "sep",
             {icon:ICON.trash, label:"채널 삭제", danger:true, action:()=>deleteChannelConfirm(c)},
@@ -5082,13 +5085,15 @@ try{
   function openInviteModal(c){
     const link = location.origin + location.pathname;
     openModal("초대 링크 만들기", `
-      <dl class="facts"><dt>채널</dt><dd>${escapeHtml(c.name)}</dd></dl>
-      <div class="field" style="margin-top:var(--sp-3);"><label>받는 사람 이메일</label>
-        <input type="email" id="invMail" placeholder="상대의 구글 계정" autocomplete="off"></div>
-      <p style="font-size:var(--fs-xs);color:var(--sub);line-height:1.7;margin:-8px 0 0;">
-        이 계정으로 로그인한 사람만 들어올 수 있습니다. 링크가 새어도 남은 못 씁니다.<br>
-        <b style="color:var(--text);">${INVITE_DAYS}일</b> 뒤 만료 · 한 번만 사용 가능 · 지금은 <b style="color:var(--text);">보기 전용</b>만 됩니다.
-      </p>
+      <p class="modal-lead"><b>${escapeHtml(c.name)}</b> 채널을 함께 볼 사람</p>
+      <div class="field"><label>구글 계정</label>
+        <input type="email" id="invMail" placeholder="name@gmail.com" autocomplete="off" spellcheck="false"></div>
+      <dl class="facts">
+        <dt>들어올 수 있는 사람</dt><dd>이 계정으로 로그인한 사람만</dd>
+        <dt>링크</dt><dd>${INVITE_DAYS}일 뒤 만료 · 한 번만 사용</dd>
+        <dt>권한</dt><dd>보기 전용</dd>
+      </dl>
+      <p class="modal-hint">앱이 메일을 보내지 않습니다. 만들어진 링크를 직접 전해주세요.</p>
       <div id="invOut" style="margin-top:var(--sp-3);"></div>
       <div class="modal-actions">
         <button class="btn-ghost" id="invCancel">닫기</button>
@@ -5120,9 +5125,9 @@ try{
             const url = link + "?join=" + token;
             out.innerHTML = `
               <div class="invite-box">
-                <div class="invite-to">${escapeHtml(mail)} 에게 보내세요</div>
+                <div class="invite-to">${escapeHtml(mail)} 에게 보낼 링크</div>
                 <div class="invite-url" id="invUrl">${escapeHtml(url)}</div>
-                <button class="btn-primary" id="invCopy" style="width:100%;margin-top:8px;">링크 복사</button>
+                <button class="btn-primary" id="invCopy" style="width:100%;margin-top:10px;">링크 복사</button>
               </div>`;
             btn.disabled = false; btn.textContent = "다시 만들기";
             out.querySelector("#invCopy").onclick = ()=>{ copyText(url); };
