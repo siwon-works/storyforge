@@ -3751,6 +3751,13 @@ try{
               {icon:ICON.leave, label:"채널에서 나가기", danger:true, action:()=>leaveChannelConfirm(c)},
             ];
           }
+          /* 체험 모드에는 로그인이 없어서 서버 연결 자체가 없다.
+             협업 항목을 열어두면 눌렀을 때 아무 응답 없이 멈춘다. */
+          if(!sb) return [
+            {icon:ICON.edit, label:"채널 수정", action:()=>openChannelModal(c, ()=>renderAll())},
+            "sep",
+            {icon:ICON.trash, label:"채널 삭제", danger:true, action:()=>deleteChannelConfirm(c)},
+          ];
           return [
             {icon:ICON.edit, label:"채널 수정", action:()=>openChannelModal(c, ()=>renderAll())},
             {icon:ICON.shared, label:"멤버 보기", action:()=>openMembersModal(c)},
@@ -5424,6 +5431,8 @@ try{
      이메일을 지정하지 않으면 링크를 먼저 여는 사람이 들어온다. 그래서 필수다.
      서버도 같은 검사를 한다 — 앱만 막으면 우회된다. */
   function openInviteModal(c){
+    // 메뉴에서 이미 걸러지지만, 여기서도 막는다. 없으면 눌렀을 때 조용히 멈춘다.
+    if(!sb){ showFleetingToast("체험 중에는 초대할 수 없어요", true); return; }
     const link = location.origin + location.pathname;
     openModal("초대 링크 만들기", `
       <p class="modal-lead"><b>${escapeHtml(c.name)}</b> 채널을 함께 쓸 사람</p>
