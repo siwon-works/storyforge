@@ -291,6 +291,10 @@
   /* 공유받은 채널 — 색을 더 쓰지 않는다. 채널마다 이미 색이 있어서 싸운다.
      사람 아이콘과 회색 꼬리표로만 구분한다. */
   .ch-owner{color:var(--sub);font-weight:400;}
+  /* 남이 만진 단계에만 붙는 꼬리표. 색을 쓰지 않는다 - 단계 줄에 이미 색이 많다 */
+  .stage-mark{font-size:var(--fs-xs);color:var(--sub);flex:0 0 auto;white-space:nowrap;
+    opacity:.85;margin-right:4px;}
+  @media (max-width:760px){ .stage-mark{display:none;} }
   .member-row{display:flex;align-items:center;gap:10px;padding:10px 12px;
     border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:6px;font-size:var(--fs-sm);}
   .member-name{flex:1;font-weight:600;}
@@ -314,6 +318,7 @@
   .ro-view button:not(.ro-allow), .ro-view input, .ro-view textarea,
   .ro-view .stage-check, .ro-view .note{pointer-events:none;}
   .ro-view .stage-link-add, .ro-view .sub-link-add, .ro-view .note-del,
+  .ro-view .sub-rm, .ro-view .sub-add-row, .ro-view .note-add,
   .ro-view .pcard-actions, .ro-view .proj-actions{display:none !important;}
   .ro-banner{display:flex;align-items:center;gap:8px;margin-bottom:var(--sp-3);
     padding:9px 13px;border:1px dashed var(--border);border-radius:var(--r-md);
@@ -1674,6 +1679,64 @@ try{
     state.projects.forEach(p=>{ if(p._ro) deepFreeze(p); });
   }
 
+  /* 바뀐 단계에 "언제·누가" 를 적는다.
+
+     baseJson = 서버가 마지막으로 아는 그 이야기의 모습. 그것과 다른 단계만
+     내가 바꾼 것이다. 도장이 있어야 나중에 단계 단위로 합칠 수 있고,
+     화면에 "대본 ✓ · 아내 · 2시간 전" 을 띄울 수 있다.
+
+     비교는 도장을 뺀 알맹이로 한다. 안 그러면 도장이 도장을 부른다. */
+  function stageCore(st){
+    if(!st) return "";
+    return JSON.stringify({name: st.name, icon: st.icon, url: st.url || "",
+                           manualDone: !!st.manualDone, subtasks: st.subtasks || []});
+  }
+  /* "2시간 전" 처럼 읽히는 시각. 협업할 때는 정확한 시각보다 "얼마나 됐나" 가 궁금하다. */
+  function agoText(ts){
+    if(!ts) return "";
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if(s < 60) return "방금";
+    const m = Math.floor(s / 60);
+    if(m < 60) return m + "분 전";
+    const h = Math.floor(m / 60);
+    if(h < 24) return h + "시간 전";
+    const d = Math.floor(h / 24);
+    if(d < 7) return d + "일 전";
+    const dt = new Date(ts);
+    return (dt.getMonth() + 1) + "월 " + dt.getDate() + "일";
+  }
+  /* 남이 만진 흔적만 보여준다. 내가 방금 누른 걸 "나 · 방금" 이라고 알려주는 건
+     화면만 시끄럽게 한다. */
+  function stageMarkHtml(p, st){
+    if(!st || !st.updatedAt || !st.updatedBy) return "";
+    if(st.updatedBy === myDisplayName()) return "";
+    return `<span class="stage-mark">${escapeHtml(st.updatedBy)} · ${agoText(st.updatedAt)}</span>`;
+  }
+
+  function stampChanges(p, baseJson){
+    const now = Date.now();
+    const who = myDisplayName() || null;
+    let base = null;
+    if(baseJson){ try{ base = JSON.parse(baseJson); }catch(e){ base = null; } }
+    const baseStages = (base && base.stages) || [];
+    let touched = false;
+
+    (p.stages || []).forEach((st, i)=>{
+      if(stageCore(st) === stageCore(baseStages[i])) return;
+      st.updatedAt = now;
+      st.updatedBy = who;
+      touched = true;
+    });
+
+    // 제목·날짜·채널·썸네일·완료 같은 이야기 전체 항목
+    const head = (x)=> x ? JSON.stringify({name:x.name, uploadAt:x.uploadAt,
+      channelId:x.channelId, completed:!!x.completed, thumbnail:x.thumbnail || null}) : "";
+    if(head(p) !== head(base)) touched = true;
+
+    if(touched){ p.updatedAt = now; p.updatedBy = who; }
+    return touched;
+  }
+
   /* 클라우드로 나가는 유일한 통로. 공유받은 이야기는 여기서 빠진다.
      이 한 곳만 지키면 남의 이야기를 내 것으로 복제하는 일이 생길 수 없다.
      (화면에는 섞여 보여도 된다 — 화면은 아무것도 저장하지 않는다) */
@@ -1725,9 +1788,28 @@ try{
     });
 
     const chIds = new Set(state.channels.map(c=>c.id));
+    /* dataSlice 가 만든 건 얕은 복사본이다. 도장을 거기 찍으면 이야기 전체 도장이
+       로컬에 안 남고, 다음 저장 때 또 달라 보여서 계속 다시 찍는다.
+       그래서 진짜 객체를 찾아 찍고, 보낼 것을 다시 담는다. */
+    let stamped = false;
+    const realById = new Map();
+    state.projects.forEach(p=>{ if(!p._ro) realById.set(p.id, p); });
+    state.trash.forEach(p=>{ if(!p._ro) realById.set(p.id, p); });
+
     Object.keys(want).forEach(id=>{
+      const baseJson = lastSent.get(id);
+      if(baseJson === JSON.stringify(want[id])) return;
+      /* 서버가 아는 값과 견줘서 "내가 바꾼 단계" 에만 도장을 찍는다.
+         손대는 자리마다 찍으면 스무 군데 중 하나는 빠뜨리고, 빠뜨린 건
+         조용히 새서 나중에 병합이 틀린다. 여기 한 곳이면 빠뜨릴 수가 없다. */
+      const real = realById.get(id);
+      if(real){
+        if(stampChanges(real, baseJson)) stamped = true;
+        const trashed = want[id]._trashed;
+        want[id] = Object.assign({}, real, {_trashed: trashed});
+        delete want[id]._ro;
+      }
       const json = JSON.stringify(want[id]);
-      if(lastSent.get(id) === json) return;
       if(json.length > DOC_LIMIT){ oversize++; return; }
       const cid = chIds.has(want[id].channelId) ? want[id].channelId : null;
       jobs.push(()=> db.doc("projects/" + id).set(want[id], {channel_id: cid})
@@ -1749,6 +1831,10 @@ try{
     if(mjson !== lastMetaSent && mjson.length <= DOC_LIMIT){
       jobs.push(()=> db.doc("meta/app").set(meta).then(()=>{ lastMetaSent = mjson; }));
     }
+
+    /* 도장은 여기서 찍힌다. save() 는 이미 지나갔으므로 다시 써두지 않으면
+       브라우저 사본에만 도장이 빠진 채로 남는다. */
+    if(stamped){ try{ localStorage.setItem("yadam-state-v5", JSON.stringify(state)); }catch(e){} }
 
     if(!jobs.length){
       if(oversize) setSyncStatus("err", "이미지가 너무 커서 일부 미동기화");
@@ -1857,6 +1943,9 @@ try{
         state.view = "all"; state.active = null;
       }
       try{ localStorage.setItem("yadam-state-v5", JSON.stringify(state)); }catch(e){}
+      /* 방금 서버 것을 그대로 받아왔으니, 이제 서버와 로컬이 같다.
+         이 기준선이 있어야 "내가 바꾼 것" 과 "남이 바꾼 것" 을 가릴 수 있다. */
+      rememberSent();
       renderAll();
     } finally {
       applyingRemote = false;
@@ -4691,6 +4780,7 @@ try{
                 <svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>
                 <span class="lk-hint">링크 열기<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg></span></a>`}
           <span class="stage-fill"></span>
+          ${stageMarkHtml(p, stage)}
           ${stage.url ? "" : `<button class="stage-link-add" data-linkadd="${si}" title="이 단계에 링크 연결">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>
                 <span>링크 연결</span></button>`}
