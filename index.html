@@ -1612,6 +1612,8 @@ try{
   var remoteMeta = null;
   var remoteChannels = null;     // 채널 표의 마지막 스냅샷 (행 배열)
   var myUid = null;              // 로그인한 사람의 id. 공유받은 것 구분에 쓴다
+  /* 이야기 id -> 그 이야기를 만든 사람. 남의 이야기를 고치거나 지울 때 그 행을 찾는다. */
+  var projectOwner = new Map();
   /* 초대 토큰을 잠깐 넣어두는 자리. bootAuth 가 파일 앞쪽에서 돌기 때문에
      이 상수도 그보다 먼저 선언돼 있어야 한다. */
   const JOIN_KEY = "yadam-join";
@@ -1762,7 +1764,7 @@ try{
     const list = state.projects.some(p=>p.id===id) ? state.projects : state.trash;
     const i = list.findIndex(p=>p.id===id);
     if(i < 0) return;
-    const keep = {_ro: list[i]._ro};
+    const keep = {_ro: list[i]._ro, _owner: list[i]._owner};
     const next = JSON.parse(JSON.stringify(merged));
     delete next._trashed;
     list[i] = Object.assign(next, keep);
@@ -1884,15 +1886,21 @@ try{
         want[id] = Object.assign({}, real, {_trashed: trashed});
         delete want[id]._ro;
       }
+      /* 그 이야기를 만든 사람의 행에 써야 한다. 편집자가 남의 이야기를 고칠 때
+         내 이름으로 쓰면 같은 이야기가 하나 더 생긴다. _owner 는 보낼 내용에서 뺀다. */
+      const rowUid = want[id]._owner || projectOwner.get(id) || null;
+      delete want[id]._owner;
+
       const json = JSON.stringify(want[id]);
       if(json.length > DOC_LIMIT){ oversize++; return; }
       const cid = chIds.has(want[id].channelId) ? want[id].channelId : null;
+      const extra = {channel_id: cid, user_id: rowUid};
 
       /* 둘 이상이 쓰는 채널이면 덮어쓰기 전에 서버 것을 다시 읽고 합친다.
          혼자 쓰는 채널에서는 아무도 바꿀 수 없으므로 왕복을 아낀다. */
       const ch = state.channels.find(c=>c.id === want[id].channelId);
       if(!isCollab(ch)){
-        jobs.push(()=> db.doc("projects/" + id).set(want[id], {channel_id: cid})
+        jobs.push(()=> db.doc("projects/" + id).set(want[id], extra)
                          .then(()=>{ lastSent.set(id, json); }));
         return;
       }
@@ -1900,13 +1908,15 @@ try{
         const merged = mergeProject(want[id], snap.exists ? snap.data() : null);
         // 합친 결과를 로컬에도 반영한다. 안 그러면 화면과 서버가 어긋난다.
         adoptMerged(id, merged);
-        return db.doc("projects/" + id).set(merged, {channel_id: cid})
+        return db.doc("projects/" + id).set(merged, extra)
           .then(()=>{ lastSent.set(id, JSON.stringify(merged)); });
       }));
     });
     Array.from(lastSent.keys()).forEach(id=>{
       if(want[id]) return;
-      jobs.push(()=> db.doc("projects/" + id).delete().then(()=>{ lastSent.delete(id); }));
+      const rowUid = projectOwner.get(id) || null;
+      jobs.push(()=> db.doc("projects/" + id).delete({user_id: rowUid})
+                       .then(()=>{ lastSent.delete(id); projectOwner.delete(id); }));
     });
 
     /* 예비본에는 내 채널만 담는다. 공유받은 채널까지 넣으면, 되돌렸을 때
@@ -1969,14 +1979,29 @@ try{
     // 스냅샷 문서와 data() 는 frozen 이다. 앱은 stages/subtasks 를 직접 변경하므로
     // 얕은 복사로는 안 된다 — 얕게 복사하면 체크박스 클릭이 조용히 씹힌다.
     const clone = (o)=> JSON.parse(JSON.stringify(o));
+    /* 채널마다 내 역할을 먼저 정리한다. 이야기를 고칠 수 있는지가 여기서 갈린다. */
+    const roleById = new Map();
+    (snap.channels || []).forEach(r=>{
+      roleById.set(r.id, r.owner_id === myUid ? "owner"
+        : (((r.channel_members || []).find(x=>x.user_id === myUid) || {}).role || "viewer"));
+    });
+    const canWrite = (chId)=>{
+      const role = roleById.get(chId);
+      if(!role) return true;              // 내 채널 목록에 없으면 내 것으로 본다
+      return role === "owner" || role === "editor";
+    };
+
     const projects = [], trash = [];
     snap.projects.forEach(d=>{
       const p = clone(d);
       const trashed = p._trashed; delete p._trashed;
-      /* 남의 이야기는 읽기 전용으로 표시한다. 이 표시가 쓰기 깔때기(dataSlice)에서
-         걸러지는 유일한 기준이다 — 여기가 틀리면 남의 이야기를 내 것으로 복제한다. */
-      const owner = p._owner; delete p._owner;
-      p._ro = !!(myUid && owner && owner !== myUid);
+      /* 고칠 수 없는 이야기만 읽기 전용으로 표시한다. 이 표시가 쓰기 깔때기
+         (dataSlice)에서 걸러지는 유일한 기준이다 — 여기가 틀리면 남의 이야기를
+         내 것으로 복제하거나, 반대로 편집자가 아무것도 못 고친다.
+
+         _owner 는 지우지 않는다. 남의 이야기를 고칠 때 그 사람 행에 써야 한다. */
+      p._ro = !canWrite(p.channelId);
+      if(p._owner) projectOwner.set(p.id, p._owner);
       // 남의 휴지통 항목까지 보여줄 이유는 없다
       if(p._ro && trashed) return;
       (trashed ? trash : projects).push(p);
@@ -2000,7 +2025,12 @@ try{
         image: r.image != null ? r.image : (base.image || null),
         shared: shared,
         ownerName: shared ? (r.owner_name || null) : null,
-        memberCount: (r.channel_members && r.channel_members[0] && r.channel_members[0].count) || 1
+        memberCount: (r.channel_members || []).length || 1,
+        /* 내 역할. 접근 규칙 때문에 남의 채널에서는 내 행만 보이므로
+           memberCount 는 1로 나오지만, shared 가 이미 참이라 협업 판정에는 지장이 없다. */
+        role: shared
+          ? (((r.channel_members || []).find(x=>x.user_id === myUid) || {}).role || "viewer")
+          : "owner"
       });
     });
     const nextData = {projects, trash,
@@ -2198,7 +2228,7 @@ try{
       // 필터를 걸지 않는다 — RLS 가 "내 것 + 내가 멤버인 것"만 돌려준다.
       // 멤버 수를 같이 받아야 "혼자 쓰는 채널"과 "협업 중"을 가릴 수 있다.
       return client.from("channels")
-        .select("id,name,color,image,sort_order,owner_id,owner_name,channel_members(count)")
+        .select("id,name,color,image,sort_order,owner_id,owner_name,channel_members(user_id,role)")
         .order("sort_order").then(must);
     }
 
@@ -2242,14 +2272,17 @@ try{
             /* extra.channel_id 는 호출부가 "실제로 있는 채널"만 넣어준다.
                없는 채널을 가리키면 외래키에 걸려 이야기 저장이 통째로 거절된다. */
             set: function(obj, extra){
+              /* extra.user_id 는 그 이야기를 만든 사람이다. 남의 이야기를 고칠 때
+                 내 이름으로 쓰면 같은 이야기가 내 앞으로 하나 더 생긴다. */
               return client.from("projects")
-                .upsert({user_id: uid, id: id, data: obj,
+                .upsert({user_id: (extra && extra.user_id) || uid, id: id, data: obj,
                          channel_id: (extra && extra.channel_id) || null,
                          updated_at: stamp()},
                         {onConflict: "user_id,id"}).then(must);
             },
-            delete: function(){
-              return client.from("projects").delete().eq("user_id", uid).eq("id", id).then(must);
+            delete: function(extra){
+              return client.from("projects").delete()
+                .eq("user_id", (extra && extra.user_id) || uid).eq("id", id).then(must);
             },
             /* user_id 로 거르지 않는다 — 병합하려면 남이 만든 이야기도 읽어야 한다.
                어차피 접근 규칙이 "내 것 + 내가 멤버인 채널의 것" 만 돌려준다. */
@@ -3437,7 +3470,20 @@ try{
     state.projects.push(p);
     save(); renderAll();
   }
+  /* 영구 삭제는 채널 소유자만. 편집자는 휴지통까지만 할 수 있다 —
+     되돌릴 수 없는 것만 소유자에게 남긴다는 규칙이다.
+     서버도 같은 검사를 하므로 여기를 우회해도 거절된다. */
+  function canDestroy(p){
+    const ch = channelOf(p);
+    return !ch || !ch.shared;
+  }
+
   function destroyProject(id){
+    const target = state.trash.find(p=>p.id===id) || state.projects.find(p=>p.id===id);
+    if(target && !canDestroy(target)){
+      showFleetingToast("영구 삭제는 채널 소유자만 할 수 있어요", true);
+      return;
+    }
     openModal("영구 삭제", `
       <div class="alert-box"><span class="alert-icon">⚠️</span><p>되돌릴 수 없어요. 정말 삭제할까요?</p></div>
       <div class="modal-actions"><button class="btn-ghost" id="cancelBtn">취소</button><button class="btn-primary" id="okBtn" style="background:var(--danger)">영구 삭제</button></div>`,
@@ -3819,9 +3865,13 @@ try{
           `, (m)=>{
             m.querySelector("#cancelBtn").onclick = closeModal;
             m.querySelector("#okBtn").onclick = ()=>{
-              state.trash = [];
+              /* 남의 채널 이야기는 영구 삭제 권한이 없어 서버가 거절한다.
+                 남겨두고 지울 수 있는 것만 지운다. */
+              const kept = state.trash.filter(p=>!canDestroy(p));
+              state.trash = kept;
               state.noteTrash = [];
               save(); closeModal(); renderAll();
+              if(kept.length) showFleetingToast(kept.length + "개는 채널 소유자만 지울 수 있어요");
             };
           });
         });
@@ -5361,13 +5411,18 @@ try{
   function openInviteModal(c){
     const link = location.origin + location.pathname;
     openModal("초대 링크 만들기", `
-      <p class="modal-lead"><b>${escapeHtml(c.name)}</b> 채널을 함께 볼 사람</p>
+      <p class="modal-lead"><b>${escapeHtml(c.name)}</b> 채널을 함께 쓸 사람</p>
       <div class="field"><label>구글 계정</label>
         <input type="email" id="invMail" placeholder="name@gmail.com" autocomplete="off" spellcheck="false"></div>
+      <div class="field"><label>권한</label>
+        <select id="invRole">
+          <option value="editor">편집 — 단계 체크, 이야기 만들기·수정</option>
+          <option value="viewer">보기 전용 — 보기만</option>
+        </select></div>
       <dl class="facts">
         <dt>들어올 수 있는 사람</dt><dd>이 계정으로 로그인한 사람만</dd>
         <dt>링크</dt><dd>${INVITE_DAYS}일 뒤 만료 · 한 번만 사용</dd>
-        <dt>권한</dt><dd>보기 전용</dd>
+        <dt>못 하는 것</dt><dd>영구 삭제 · 채널 수정 · 사람 초대</dd>
       </dl>
       <p class="modal-hint">앱이 메일을 보내지 않습니다. 만들어진 링크를 직접 전해주세요.</p>
       <div id="invOut" style="margin-top:var(--sp-3);"></div>
@@ -5389,11 +5444,13 @@ try{
             out.innerHTML = `<div class="auth-msg err">본인 이메일입니다. 함께 쓸 사람의 이메일을 넣어주세요.</div>`;
             return;
           }
+          const role = (m.querySelector("#invRole") || {}).value || "editor";
           const btn = m.querySelector("#invOk");
           btn.disabled = true; btn.textContent = "만드는 중…";
           const token = uid() + Math.random().toString(36).slice(2, 10);
           sb.from("channel_invites").insert({
-            token: token, channel_id: c.id, role: "viewer",
+            token: token, channel_id: c.id,
+            role: role,
             created_by: myUid, invite_email: mail,
             expires_at: new Date(Date.now() + INVITE_DAYS*86400000).toISOString()
           }).then(function(res){
@@ -5401,7 +5458,7 @@ try{
             const url = link + "?join=" + token;
             out.innerHTML = `
               <div class="invite-box">
-                <div class="invite-to">${escapeHtml(mail)} 에게 보낼 링크</div>
+                <div class="invite-to">${escapeHtml(mail)} · ${role === "editor" ? "편집" : "보기 전용"}</div>
                 <div class="invite-url" id="invUrl">${escapeHtml(url)}</div>
                 <button class="btn-primary" id="invCopy" style="width:100%;margin-top:10px;">링크 복사</button>
               </div>`;
