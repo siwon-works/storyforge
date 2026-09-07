@@ -311,6 +311,10 @@
     transition:border-color .12s ease, color .12s ease;}
   .member-kick:hover{border-color:var(--danger);color:var(--danger);}
   .member-role{font-size:var(--fs-xs);color:var(--sub);flex:0 0 auto;}
+  .member-role-sel{flex:0 0 auto;font-size:var(--fs-xs);font-family:inherit;
+    border:1px solid var(--border);border-radius:var(--r-sm);padding:5px 6px;
+    background:var(--panel);color:var(--text);cursor:pointer;}
+  .member-role-sel:disabled{opacity:.5;}
   .ch-group-label{font-size:var(--fs-xs);color:var(--sub);font-weight:700;
     padding:10px 8px 4px;margin-top:2px;border-top:1px solid var(--border);}
   /* 공유받은 이야기는 손댈 수 없다. 버튼을 지우지 않고 막기만 한다 —
@@ -327,6 +331,7 @@
   .ro-banner .btn-icon{width:14px;height:14px;flex:0 0 auto;}
   .ch-shared-mark{display:inline-flex;align-items:center;flex:0 0 auto;color:var(--sub);opacity:.8;}
   .ch-shared-mark .btn-icon{width:13px;height:13px;}
+  .ch-shared-mark i{font-style:normal;font-size:var(--fs-xs);margin-left:2px;}
   .pcard.shared{border-style:dashed;}
   .pcard-channel .shared-mark{display:inline-flex;align-items:center;gap:4px;color:var(--sub);
     font-size:var(--fs-xs);margin-left:auto;flex:0 0 auto;}
@@ -1337,7 +1342,7 @@
     <div class="nav">
       <button class="new-proj-btn" id="newProjBtn"><span class="npb-icon">+</span><span>새 이야기</span></button>
       <div class="nav-item" id="navAll"><svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4Z"/></svg> <span>전체 이야기</span> <span class="count" id="allCount"></span></div>
-      <div class="section-label" id="channelSectionLabel" style="display:none;"><button class="sec-toggle" id="chCollapseBtn" type="button">내 채널<svg class="sec-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button> <button id="addChBtnSidebar" title="채널 추가"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button></div>
+      <div class="section-label" id="channelSectionLabel" style="display:none;"><button class="sec-toggle" id="chCollapseBtn" type="button">채널<svg class="sec-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button> <button id="addChBtnSidebar" title="채널 추가"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button></div>
       <div id="sidebarChannelFilter"></div>
       <div class="section-label" id="listSectionLabel">이야기</div>
       <div id="projList"></div>
@@ -3689,11 +3694,16 @@ try{
        그래서 보고 있는 채널 한 줄만 남긴다. 전체 이야기를 보는 중이면 남길 게 없다. */
     /* 내 채널을 먼저, 공유받은 것을 뒤에. 섞여 있으면 어느 게 내 것인지
        한 줄씩 읽어봐야 안다. 각 무리 안의 순서는 사용자가 정한 그대로 둔다. */
-    const ordered = state.channels.filter(c=>!isCollab(c)).concat(state.channels.filter(isCollab));
+    /* 소유자 기준으로 나눈다. 내가 만든 채널은 남과 같이 쓰든 아니든 내 것이다.
+       "함께 쓰는 중" 은 줄에 붙는 사람 아이콘이 말해준다. */
+    const ordered = state.channels.filter(c=>!c.shared).concat(state.channels.filter(c=>c.shared));
     const shownChannels = chCollapsed
       ? ordered.filter(c => c.id === state.channelFilter)
       : ordered;
-    const firstCollabId = (ordered.find(isCollab) || {}).id;
+    const firstMineId   = (ordered.find(c=>!c.shared) || {}).id;
+    const firstSharedId = (ordered.find(c=>c.shared)  || {}).id;
+    // 공유받은 채널이 하나도 없으면 나눌 게 없다. 이름표만 늘면 복잡해진다.
+    const showGroups = !chCollapsed && !!firstSharedId;
 
     if(!shownChannels.length){
       chFilterEl.innerHTML = "";
@@ -3703,12 +3713,13 @@ try{
         <div class="sidebar-ch-filter" id="chFilterList">
           ${shownChannels.map(c=>{
             const cnt = activeProjects.filter(p=>p.channelId===c.id).length;
-            const head = (!chCollapsed && c.id === firstCollabId)
+            // 이름표는 구분이 필요한 곳에만. 선 위는 내 것이라는 게 저절로 읽힌다.
+            const head = (showGroups && c.id === firstSharedId)
               ? `<div class="ch-group-label">협업 중</div>` : "";
             return `${head}<div class="ch-row-wrap" data-ch-row="${c.id}">
               <div class="ch-drop-indicator"></div>
               <button data-ch="${c.id}" class="${state.channelFilter===c.id?'active':''}" draggable="${chCollapsed?'false':'true'}">
-                ${chAvatarHtml(c,18)}<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(chDisplayName(c))}${c.shared ? `<span class="ch-owner">${escapeHtml(chOwnerSuffix(c))}</span>` : ""}</span>${isCollab(c) ? `<span class="ch-shared-mark" title="${c.shared ? "공유받은 채널" : "함께 쓰는 채널"}">${ICON.shared}</span>` : ""}<span class="ch-count-badge">${cnt}</span>
+                ${chAvatarHtml(c,18)}<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(chDisplayName(c))}${c.shared ? `<span class="ch-owner">${escapeHtml(chOwnerSuffix(c))}</span>` : ""}</span>${isCollab(c) ? `<span class="ch-shared-mark" title="${c.shared ? "공유받은 채널" : "함께 쓰는 채널"}">${ICON.shared}${(!c.shared && c.memberCount > 1) ? `<i>${c.memberCount}</i>` : ""}</span>` : ""}<span class="ch-count-badge">${cnt}</span>
               </button>
             </div>`;
           }).join("")}
@@ -5402,7 +5413,7 @@ try{
      구글 실명이 그대로 남에게 뜨지 않도록 바꿀 수 있게 한다.
      바꾸면 내 채널 전부에 다시 실어 보내야 하므로 보낸 기록을 지운다. */
 
-  const ROLE_LABEL = {owner: "소유자", editor: "편집", viewer: "보기 전용"};
+  const ROLE_LABEL = {owner: "소유자", editor: "편집자", viewer: "보기 전용"};
   const INVITE_DAYS = 7;
 
   /* 초대 링크 만들기.
@@ -5416,7 +5427,7 @@ try{
         <input type="email" id="invMail" placeholder="name@gmail.com" autocomplete="off" spellcheck="false"></div>
       <div class="field"><label>권한</label>
         <select id="invRole">
-          <option value="editor">편집 — 단계 체크, 이야기 만들기·수정</option>
+          <option value="editor">편집자 — 단계 체크, 이야기 만들기·수정</option>
           <option value="viewer">보기 전용 — 보기만</option>
         </select></div>
       <dl class="facts">
@@ -5458,7 +5469,7 @@ try{
             const url = link + "?join=" + token;
             out.innerHTML = `
               <div class="invite-box">
-                <div class="invite-to">${escapeHtml(mail)} · ${role === "editor" ? "편집" : "보기 전용"}</div>
+                <div class="invite-to">${escapeHtml(mail)} · ${role === "editor" ? "편집자" : "보기 전용"}</div>
                 <div class="invite-url" id="invUrl">${escapeHtml(url)}</div>
                 <button class="btn-primary" id="invCopy" style="width:100%;margin-top:10px;">링크 복사</button>
               </div>`;
@@ -5566,10 +5577,18 @@ try{
               const me = r.member_id === myUid;
               // 소유자는 자기를 못 내보낸다. 내보내면 자기 채널에 못 들어간다.
               const canKick = iAmOwner && !me && r.member_role !== "owner";
+              /* 소유자는 권한을 바꿀 수 있다. 못 바꾸면 내보내고 다시 초대해야 한다.
+                 소유자 자신과 남의 채널에서는 고정 글자로 보여준다. */
+              const roleCell = canKick
+                ? `<select class="member-role-sel" data-role="${escapeHtml(r.member_id)}">
+                     <option value="editor"${r.member_role==="editor"?" selected":""}>편집자</option>
+                     <option value="viewer"${r.member_role==="viewer"?" selected":""}>보기 전용</option>
+                   </select>`
+                : `<span class="member-role">${ROLE_LABEL[r.member_role] || r.member_role}</span>`;
               return `<div class="member-row">
                 <span class="member-name">${escapeHtml(r.member_name || "이름 없음")}${me ? ` <span class="member-me">나</span>` : ""}
                   <span class="member-mail">${escapeHtml(r.member_email || "")}</span></span>
-                <span class="member-role">${ROLE_LABEL[r.member_role] || r.member_role}</span>
+                ${roleCell}
                 ${canKick ? `<button class="member-kick" data-kick="${escapeHtml(r.member_id)}"
                    data-name="${escapeHtml(r.member_name || "")}"
                    data-mail="${escapeHtml(r.member_email || "")}">내보내기</button>` : ""}
@@ -5577,6 +5596,25 @@ try{
             }).join("");
             box.querySelectorAll("[data-kick]").forEach(function(btn){
               btn.onclick = function(){ confirmKick(c, btn); };
+            });
+            box.querySelectorAll("[data-role]").forEach(function(sel){
+              let prev = sel.value;
+              sel.onchange = function(){
+                const next = sel.value;
+                sel.disabled = true;
+                sb.from("channel_members").update({role: next})
+                  .eq("channel_id", c.id).eq("user_id", sel.dataset.role)
+                  .then(function(res){
+                    sel.disabled = false;
+                    if(res.error) throw res.error;
+                    prev = next;
+                    showFleetingToast(next === "editor" ? "편집자로 바꿨어요" : "보기 전용으로 바꿨어요");
+                  })
+                  .catch(function(e){
+                    sel.disabled = false; sel.value = prev;   // 실패하면 되돌린다
+                    showFleetingToast(authErrText(e), true);
+                  });
+              };
             });
           })
           .catch(function(e){
