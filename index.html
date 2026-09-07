@@ -3419,16 +3419,16 @@ try{
           if(c.shared){
             return [
               {header:true, label:"공유받은 채널" + (c.ownerName ? " · " + c.ownerName : "")},
-              {icon:ICON.shared, label:"함께 쓰는 사람", action:()=>openMembersModal(c)},
+              {icon:ICON.shared, label:"멤버 보기", action:()=>openMembersModal(c)},
               "sep",
               {icon:ICON.leave, label:"채널에서 나가기", danger:true, action:()=>leaveChannelConfirm(c)},
             ];
           }
           return [
             {icon:ICON.edit, label:"채널 수정", action:()=>openChannelModal(c, ()=>renderAll())},
-            {icon:ICON.shared, label:"함께 쓰는 사람" + (isCollab(c) ? " " + c.memberCount : ""),
+            {icon:ICON.shared, label:"멤버 보기" + (isCollab(c) ? " " + c.memberCount : ""),
              action:()=>openMembersModal(c)},
-            {icon:ICON.link, label:"사람 초대", action:()=>openInviteModal(c)},
+            {icon:ICON.link, label:"초대 링크 만들기", action:()=>openInviteModal(c)},
             "sep",
             {icon:ICON.trash, label:"채널 삭제", danger:true, action:()=>deleteChannelConfirm(c)},
           ];
@@ -5081,7 +5081,7 @@ try{
      서버도 같은 검사를 한다 — 앱만 막으면 우회된다. */
   function openInviteModal(c){
     const link = location.origin + location.pathname;
-    openModal("사람 초대", `
+    openModal("초대 링크 만들기", `
       <dl class="facts"><dt>채널</dt><dd>${escapeHtml(c.name)}</dd></dl>
       <div class="field" style="margin-top:var(--sp-3);"><label>받는 사람 이메일</label>
         <input type="email" id="invMail" placeholder="상대의 구글 계정" autocomplete="off"></div>
@@ -5157,7 +5157,7 @@ try{
   /* 이 채널을 함께 쓰는 사람들. 이름은 각자가 적어둔 표시 이름이다 —
      계정 이메일은 아무에게도 보여주지 않는다. */
   function openMembersModal(c){
-    openModal("함께 쓰는 사람", `
+    openModal("멤버", `
       <dl class="facts"><dt>채널</dt><dd>${escapeHtml(c.name)}</dd></dl>
       <div id="memberList" style="margin-top:var(--sp-3);"><div class="auth-spinner"></div></div>
       <div class="modal-actions"><button class="btn-primary" id="mbClose">닫기</button></div>`,
