@@ -981,45 +981,6 @@
   .empty-rich h3{margin:0 0 7px;font-size:var(--fs-md);font-weight:700;}
   .empty-rich p{margin:0 0 18px;font-size:var(--fs-sm);color:var(--sub);line-height:1.75;max-width:330px;}
 
-  /* 첫 실행 튜토리얼 */
-  .tut-card{background:var(--panel);border:1px solid var(--accent);border-radius:var(--r-lg);padding:22px 24px;
-    max-width:560px;margin:0 auto 18px;box-shadow:var(--sh-md);
-    animation:view-in .32s cubic-bezier(.22,1,.36,1);}
-  .tut-card h3{margin:0 0 5px;font-size:var(--fs-lg);font-weight:700;}
-  .tut-card .tut-lead{margin:0 0 18px;font-size:var(--fs-sm);color:var(--sub);line-height:1.65;}
-  .tut-step{display:flex;gap:11px;padding:11px 0;border-top:1px solid var(--border);}
-  .tut-step:first-of-type{border-top:none;}
-  .tut-num{width:23px;height:23px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
-    font-size:var(--fs-sm);font-weight:700;background:var(--bg);color:var(--sub);border:1px solid var(--border);margin-top:1px;}
-  .tut-step.done .tut-num{background:var(--ok);border-color:var(--ok);color:#fff;}
-  .tut-step.now .tut-num{background:var(--accent);border-color:var(--accent);color:#fff;}
-  .tut-body{flex:1;min-width:0;}
-  .tut-title{font-size:var(--fs-md);font-weight:600;line-height:1.5;}
-  .tut-step.done .tut-title{color:var(--sub);text-decoration:line-through;}
-  .tut-step.todo .tut-title{color:var(--sub);}
-  .tut-step.now .tut-title{color:var(--accent);font-weight:700;}
-  .tut-desc{font-size:var(--fs-sm);color:var(--sub);line-height:1.7;margin-top:5px;}
-  .tut-desc b{color:var(--text);font-weight:600;}
-  .tut-tip{font-size:var(--fs-sm);color:var(--sub);line-height:1.65;margin-top:7px;padding:8px 11px;
-    background:var(--bg);border-radius:var(--r-md);border:1px solid var(--border);}
-  .tut-cta{margin-top:11px;}
-  .tut-foot{display:flex;justify-content:space-between;align-items:center;margin-top:16px;
-    padding-top:13px;border-top:1px solid var(--border);}
-  .tut-progress{font-size:var(--fs-sm);color:var(--sub);font-variant-numeric:tabular-nums;}
-  .tut-skip{background:none;border:none;color:var(--sub);font-size:var(--fs-sm);cursor:pointer;padding:4px 6px;text-decoration:underline;}
-  .tut-skip:hover{color:var(--text);}
-  /* 이야기가 생긴 뒤에는 목록 위 얇은 띠로만 남는다 */
-  .tut-strip{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--accent-soft);
-    border:1px solid var(--accent);border-radius:var(--r-md);padding:12px 16px;margin-bottom:16px;
-    animation:view-in .3s cubic-bezier(.22,1,.36,1);}
-  .tut-strip .tut-num{background:var(--accent);border-color:var(--accent);color:#fff;}
-  .tut-strip-text{flex:1;min-width:200px;font-size:var(--fs-sm);line-height:1.6;color:var(--text);}
-  .tut-strip-text b{color:var(--accent);font-weight:700;}
-
-  /* 튜토리얼 진행 중 조명.
-     z-index 60 = 사이드바/본문보다는 위, 모달(200)·우클릭메뉴(300)·팝오버(999)보다는 아래.
-     그래서 모달이나 메뉴를 열면 그건 어두워지지 않는다.
-     pointer-events:none 이라 어두운 영역도 그대로 클릭된다. */
   /* 단계 줄의 링크 연결 버튼 — 우클릭 메뉴에만 있으면 아무도 못 찾는다 */
   .stage-link-add{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto;
     border:1.5px solid var(--accent);background:var(--accent-soft);color:var(--accent);
@@ -1030,7 +991,6 @@
   .stage-link-add:hover{background:var(--accent);color:#fff;transform:translateY(-1px);
     box-shadow:var(--sh-accent);}
   .stage-link-add:active{transform:translateY(0) scale(.96);}
-  .tut-lit .stage-link-add{opacity:1;}     /* 튜토리얼 4단계 동안에는 항상 보이게 */
 
   /* 링크가 걸린 단계 — 평소엔 제목 옆 작은 🔗 로 조용히, 마우스를 올리면 확실하게 */
   .stage-title-link{display:inline-flex;align-items:center;gap:7px;text-decoration:none;
@@ -1047,48 +1007,6 @@
   .stage:hover .stage-title-link .lk-hint{max-width:90px;opacity:1;}
   .stage-title-link:hover > span:first-child{text-decoration:underline;text-underline-offset:3px;}
 
-  /* 여기를 누르세요 — 손가락 표시 */
-  .tut-hand{position:absolute;left:50%;top:calc(100% + 1px);margin-left:-12px;
-    font-size:var(--fs-xl);line-height:1;pointer-events:none;z-index:62;
-    filter:drop-shadow(0 3px 5px rgba(0,0,0,.45));animation:tut-tap 1.6s ease-in-out infinite;}
-  /* 단계 줄은 overflow:hidden 이라 손가락이 잘린다. 조명 중일 때만 풀어준다 */
-  .stage.tut-lit{overflow:visible;}
-  @keyframes tut-tap{
-    0%,60%,100%{transform:translateY(0) scale(1);}
-    18%{transform:translateY(-9px) scale(1.14);}
-    34%{transform:translateY(1px) scale(.93);}
-  }
-
-  .tut-spot{position:fixed;inset:0;z-index:60;pointer-events:none;
-    background:rgba(0,0,0,.52);animation:overlay-fade .3s ease;}
-  /* 좌표를 재지 않는다. 밝힐 요소를 어둠 위로 올리기만 하면 항상 정확히 맞는다. */
-  .tut-lit{position:relative;z-index:61;animation:tut-lit-pulse 2.2s ease-out infinite;}
-  @keyframes tut-lit-pulse{
-    0%{box-shadow:0 10px 34px rgba(0,0,0,.34), 0 0 0 0 rgba(255,255,255,.45);}
-    70%{box-shadow:0 10px 34px rgba(0,0,0,.34), 0 0 0 12px rgba(255,255,255,0);}
-    100%{box-shadow:0 10px 34px rgba(0,0,0,.34), 0 0 0 0 rgba(255,255,255,0);}
-  }
-
-  /* 튜토리얼 완료 — 나머지를 어둡게 하고 가이드 버튼에만 조명 */
-  .spot-layer{position:fixed;inset:0;z-index:700;animation:overlay-fade .3s ease;}
-  .spot-hole{position:fixed;border-radius:var(--r-md);pointer-events:none;
-    box-shadow:0 0 0 9999px rgba(0,0,0,.66), 0 0 0 0 rgba(255,255,255,.55);
-    animation:spot-pulse 1.9s ease-out infinite;}
-  @keyframes spot-pulse{
-    0%{box-shadow:0 0 0 9999px rgba(0,0,0,.66), 0 0 0 0 rgba(255,255,255,.5);}
-    70%{box-shadow:0 0 0 9999px rgba(0,0,0,.66), 0 0 0 13px rgba(255,255,255,0);}
-    100%{box-shadow:0 0 0 9999px rgba(0,0,0,.66), 0 0 0 0 rgba(255,255,255,0);}
-  }
-  .spot-callout{position:fixed;width:310px;max-width:calc(100vw - 32px);background:var(--panel);
-    border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;box-shadow:var(--sh-lg);
-    animation:modal-pop .28s cubic-bezier(.22,1,.36,1);}
-  .spot-callout h4{margin:0 0 8px;font-size:var(--fs-md);font-weight:700;}
-  .spot-callout p{margin:0 0 16px;font-size:var(--fs-sm);line-height:1.75;color:var(--sub);}
-  .spot-callout p b{color:var(--text);font-weight:600;}
-  .spot-actions{display:flex;gap:8px;justify-content:flex-end;}
-  .spot-actions button{border:none;border-radius:var(--r-md);padding:9px 14px;font-size:var(--fs-sm);cursor:pointer;}
-  .spot-arrow{position:fixed;width:0;height:0;border:9px solid transparent;
-    border-right-color:var(--panel);filter:drop-shadow(-2px 0 1px rgba(0,0,0,.08));}
 
   /* ===================== 터치 기기 =====================
      호버가 없으니 "마우스를 올리면 나오는" 버튼은 영영 안 보인다. 항상 띄운다. */
@@ -1167,11 +1085,6 @@
   .kbd{display:inline-block;min-width:18px;border:1px solid var(--border);border-bottom-width:2px;background:var(--bg);
     border-radius:var(--r-sm);padding:1px 6px;font-size:var(--fs-xs);font-weight:700;color:var(--text);text-align:center;
     font-family:inherit;line-height:1.5;}
-  /* 모달이 떠 있는 동안엔 튜토리얼 안내를 숨긴다.
-     모달은 화면 기준 가운데, 안내 박스는 본문 기준 가운데라 중심이 다르다.
-     큰 카드 두 장이 어긋나게 겹치면 망가진 화면처럼 읽힌다.
-     어차피 어둡게 덮여 못 읽는 상태라 잃는 것도 없다. */
-  body:has(.overlay) #tutorialBox{display:none;}
 
   /* 튜토리얼에서 채널을 만든 직후, 사이드바에 생긴 그 줄을 짚어준다 */
   @keyframes ch-spot{
@@ -1214,6 +1127,35 @@
   .g-logo{width:18px;height:18px;flex:0 0 auto;}
   .auth-btn:hover{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
   .auth-btn:active{transform:scale(.98);}
+  /* 체험 입구 — 로그인이 주 동작이므로 경쟁하지 않게 선 아래로 내린다 */
+  .auth-alt{margin-top:var(--sp-4);padding-top:var(--sp-4);border-top:1px solid var(--border);
+    display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .auth-alt a{font-size:var(--fs-sm);font-weight:700;color:var(--accent);text-decoration:none;
+    padding:6px 12px;border-radius:var(--r-md);transition:background .12s ease;}
+  .auth-alt a:hover{background:var(--accent-soft);text-decoration:underline;text-underline-offset:3px;}
+  .auth-alt span{font-size:var(--fs-xs);color:var(--sub);}
+
+  /* 첫 실행 안내 — 나머지를 어둡게 하고 한 곳만 밝힌다.
+     단계가 하나뿐이라 진행 표시도, 건너뛰기도 필요 없다. */
+  .spot-layer{position:fixed;inset:0;z-index:700;animation:overlay-fade .3s ease;}
+  .spot-hole{position:fixed;border-radius:var(--r-md);pointer-events:none;
+    box-shadow:0 0 0 9999px rgba(0,0,0,.62), 0 0 0 0 rgba(255,255,255,.55);
+    animation:spot-pulse 1.9s ease-out infinite;}
+  @keyframes spot-pulse{
+    0%{box-shadow:0 0 0 9999px rgba(0,0,0,.62), 0 0 0 0 rgba(255,255,255,.5);}
+    70%{box-shadow:0 0 0 9999px rgba(0,0,0,.62), 0 0 0 13px rgba(255,255,255,0);}
+    100%{box-shadow:0 0 0 9999px rgba(0,0,0,.62), 0 0 0 0 rgba(255,255,255,0);}
+  }
+  .spot-callout{position:fixed;width:300px;max-width:calc(100vw - 32px);background:var(--panel);
+    border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;box-shadow:var(--sh-lg);
+    animation:modal-pop .28s cubic-bezier(.22,1,.36,1);}
+  .spot-callout h4{margin:0 0 8px;font-size:var(--fs-md);font-weight:700;}
+  .spot-callout p{margin:0 0 16px;font-size:var(--fs-sm);line-height:1.75;color:var(--sub);}
+  .spot-callout p b{color:var(--text);font-weight:600;}
+  .spot-actions{display:flex;gap:8px;justify-content:flex-end;}
+  .spot-actions button{border:none;border-radius:var(--r-md);padding:9px 14px;font-size:var(--fs-sm);cursor:pointer;}
+  .spot-arrow{position:fixed;width:0;height:0;border:9px solid transparent;
+    border-right-color:var(--panel);filter:drop-shadow(-2px 0 1px rgba(0,0,0,.08));}
   .auth-field{width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:var(--r-md);
     background:var(--bg);color:var(--text);font-size:var(--fs-md);font-family:inherit;
     text-align:center;letter-spacing:.06em;font-weight:600;margin-bottom:var(--sp-2);}
@@ -1293,6 +1235,25 @@
   .auth-spinner{width:22px;height:22px;margin:6px auto;border:2px solid var(--border);
     border-top-color:var(--accent);border-radius:50%;animation:auth-spin .7s linear infinite;}
   @keyframes auth-spin{to{transform:rotate(360deg);}}
+
+  /* 체험 중 배지 — 화면 아래 가운데. 위쪽은 헤더·툴바가 이미 차 있다. */
+  .demo-badge{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:900;
+    display:flex;align-items:center;gap:14px;max-width:calc(100vw - 24px);
+    padding:10px 12px 10px 16px;border-radius:var(--r-full);
+    background:var(--panel);border:1px solid var(--border);box-shadow:var(--sh-lg);
+    animation:view-in .32s cubic-bezier(.22,1,.36,1);}
+  .demo-text{display:flex;flex-direction:column;line-height:1.4;min-width:0;}
+  .demo-text b{font-size:var(--fs-sm);font-weight:700;white-space:nowrap;}
+  .demo-text span{font-size:var(--fs-xs);color:var(--sub);white-space:nowrap;}
+  .demo-go{flex:0 0 auto;text-decoration:none;font-size:var(--fs-sm);font-weight:700;
+    padding:8px 16px;border-radius:var(--r-full);background:var(--accent);color:#fff;
+    transition:transform .12s ease, box-shadow .12s ease;}
+  .demo-go:hover{transform:translateY(-1px);box-shadow:var(--sh-accent);}
+  .demo-go:active{transform:translateY(0) scale(.97);}
+  /* 폰에서는 가운데를 비워둔다 — 오른쪽 아래에 새 이야기 버튼(FAB)이 있다 */
+  @media (max-width:760px){
+    .demo-badge{left:12px;transform:none;bottom:16px;padding:8px 10px 8px 14px;gap:10px;}
+  }
 
   /* 사이드바 계정 카드 — 로고 바로 아래. 로그인 뒤에만 나타난다 */
   /* 상단 우측 계정 버튼. 이름만 보이고 이메일은 눌렀을 때 메뉴에서 확인한다. */
@@ -1531,26 +1492,35 @@ try{
   }
 
   const defaultChannels = [
-    {id:"ch-yadam", name:"야담주모", color:"#7a5cff", image:null},
+    {id:"ch-1", name:"내 채널", color:"#7a5cff", image:null},
   ];
   const DEFAULT_PROJECTS = [];
 
+  /* 체험 모드 — 로그인 없이 예시 데이터로 앱을 둘러본다.
+     저장을 하지 않는 것이 전부다. localStorage 도 db 도 건드리지 않는다.
+     그래야 체험하다 나가도 흔적이 남지 않고, 진짜로 가입했을 때 빈 앱에서 시작한다. */
+  const DEMO = /(^|[?&])demo=1(&|$)/.test(location.search);
+
   let state = null;
-  try{
-    state = JSON.parse(localStorage.getItem("yadam-state-v5") || "null");
-  }catch(e){
-    console.error("저장된 데이터를 읽는 중 오류 발생, 초기화합니다.", e);
-    state = null;
+  if(!DEMO){
+    try{
+      state = JSON.parse(localStorage.getItem("yadam-state-v5") || "null");
+    }catch(e){
+      console.error("저장된 데이터를 읽는 중 오류 발생, 초기화합니다.", e);
+      state = null;
+    }
   }
   if(!state){
     state = {
       schemaVersion: 2,
-      projects: DEFAULT_PROJECTS, trash: [], channels: [],   // 채널도 0개로 시작 — 튜토리얼이 만들게 한다
+      // 채널이 없으면 이야기를 만들 수 없다. 첫 실행에 하나 만들어 두고 이름만 바꾸게 한다.
+      projects: DEFAULT_PROJECTS, trash: [], channels: JSON.parse(JSON.stringify(defaultChannels)),
       active:null, view:"all", layout:"grid", search:"", channelFilter:null,
       sortMode:"date", showCompleted:false, stageTemplate: JSON.parse(JSON.stringify(DEFAULT_STAGE_TEMPLATE))
     };
   }
   function save(){
+    if(DEMO) return;                 // 체험 모드는 아무것도 저장하지 않는다
     try{
       localStorage.setItem("yadam-state-v5", JSON.stringify(state));
     }catch(e){
@@ -1949,10 +1919,14 @@ try{
           setSyncStatus("ok", "동기화됨");
         }
         subscribe();
+        // 첫 실행 안내는 원격 데이터가 도착한 뒤에 판단한다. 먼저 띄우면
+        // 다른 기기에서 로그인한 기존 사용자에게도 뜬다.
+        maybeFirstRunHint();
       })
       .catch(function(e){
         console.warn("동기화 연결 실패(로컬 저장은 정상):", e && e.code, e && e.message);
         setSyncStatus("err", "동기화 오류 — 로컬에는 저장돼요");
+        maybeFirstRunHint();
       });
 
     function subscribe(){
@@ -2019,7 +1993,11 @@ try{
           '<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>' +
           '<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>' +
           '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>' +
-        '</svg>Google 계정으로 계속하기</button>';
+        '</svg>Google 계정으로 계속하기</button>' +
+      '<div class="auth-alt">' +
+        '<a href="./?demo=1">체험해보기</a>' +
+        '<span>초대 코드 없이 둘러보기</span>' +
+      '</div>';
     document.getElementById("googleBtn").onclick = signInGoogle;
     authSay("");
   }
@@ -2028,7 +2006,10 @@ try{
     authBusy("구글로 이동 중…");
     sb.auth.signInWithOAuth({
       provider: "google",
-      options: {redirectTo: location.origin + location.pathname}
+      // prompt=select_account — 구글이 마지막 계정으로 바로 넘기지 않고 계정을 고르게 한다.
+      // 이게 없으면 계정이 여러 개인 사람은 "다른 계정으로" 를 눌러도 같은 계정으로 들어간다.
+      options: {redirectTo: location.origin + location.pathname,
+                queryParams: {prompt: "select_account"}}
     }).then(function(res){
       if(res.error) throw res.error;
     }).catch(function(e){ showSignIn(); authSay(authErrText(e), true); });
@@ -2206,7 +2187,51 @@ try{
     console.info("개발 DB 사용 중:", SUPABASE_URL);
   }
 
+  /* =========================================================================
+     체험 모드
+
+     예시 데이터는 파일로 두고 받아온다. index.html 에 박아 넣으면 앱을 쓰는
+     사람 모두가 쓰지도 않을 1MB 를 매번 내려받게 된다.
+     받아오는 동안은 로그인 게이트를 그대로 두고 스피너만 돌린다 — 원격 데이터가
+     늦게 도착해 state 를 갈아끼우는 흐름은 db 동기화와 똑같다.
+     ========================================================================= */
+  function showDemoBadge(){
+    const bar = document.createElement("div");
+    bar.className = "demo-badge";
+    bar.innerHTML =
+      '<div class="demo-text"><b>체험 중 · 예시 데이터</b><span>저장되지 않아요</span></div>' +
+      '<a class="demo-go" href="./">시작하기</a>';
+    document.body.appendChild(bar);
+  }
+
+  function startDemo(){
+    authSub.textContent = "예시 데이터로 둘러보기";
+    authBusy("불러오는 중…");
+    fetch("demo-data.json")
+      .then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(json){
+        const d = (json && json.data) || {};
+        state.schemaVersion = typeof json.schemaVersion === "number" ? json.schemaVersion : 0;
+        state.projects      = d.projects  || [];
+        state.trash         = d.trash     || [];
+        state.channels      = d.channels  || [];
+        state.noteTrash     = d.noteTrash || [];
+        if(d.stageTemplate) state.stageTemplate = d.stageTemplate;
+        migrateState(state);
+        normalizeState(state);
+        authGate.style.display = "none";
+        showDemoBadge();
+        renderAll();
+      })
+      .catch(function(e){
+        console.error("체험 데이터를 불러오지 못했습니다:", e);
+        authBody.innerHTML = '<a class="auth-btn" href="./">시작하기</a>';
+        authSay("예시 데이터를 불러오지 못했어요. 새로고침해 주세요.", true);
+      });
+  }
+
   (function bootAuth(){
+    if(DEMO){ startDemo(); return; }
     if(typeof supabase === "undefined" || !supabase || typeof supabase.createClient !== "function"){
       authBody.innerHTML = "";
       authSay("로그인 모듈을 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.", true);
@@ -3359,7 +3384,6 @@ try{
       </div>
       <div class="sub-note">💡 완료(100%)된 이야기는 기본적으로 숨겨져요.</div>
       ${statRowHtml()}
-      <div id="tutorialBox"></div>
       <div class="pgrid ${state.layout==='list'?'list':''}" id="pgrid"></div>
     `;
     document.getElementById("search").addEventListener("input",(e)=>{ state.search=e.target.value; save(); renderPgrid(); });
@@ -3379,197 +3403,10 @@ try{
     renderPgrid();
   }
 
-  /* ===================== 첫 실행 튜토리얼 =====================
-     읽고 넘기는 안내가 아니라, 실제로 해내면 저절로 체크되는 방식.
-     진행 상태는 state 에서 계산하므로 따로 저장할 게 없다.
-     완료/건너뛰기 여부만 이 브라우저에 기록한다. */
-  const TUT_KEY = "yadam-tutorial-v1";
-  // 직전 렌더의 단계. 축하는 "4단계를 보여주던 중에 4단계를 해냈을 때"만 띄운다.
-  // 이걸 안 보면, 이미 쓰던 사람이 새 브라우저에서 열었을 때 db 데이터가 도착하는
-  // 순간 튜토리얼이 한꺼번에 완료 처리되면서 엉뚱하게 축하가 터진다.
-  let tutLastStep = null;
   const bannerPasteCleanup = [];   // 상세 화면 붙여넣기 리스너 중복 방지
   let focusSubAddKey = null;       // 하위 작업 연속 입력 — 재렌더 후 커서 복귀
 
-  function tutorialDone(){
-    try{ return localStorage.getItem(TUT_KEY) === "done"; }catch(e){ return true; }
-  }
-  function finishTutorial(){
-    try{ localStorage.setItem(TUT_KEY, "done"); }catch(e){}
-    revealSidebar();          // 건너뛰든 끝까지 하든, 접어뒀던 사이드바를 돌려준다
-  }
-  function anyStageTouched(){
-    return state.projects.some(p=> p.stages.some(st=>
-      st.manualDone || (st.subtasks || []).some(s=>s.done)));
-  }
-  function anyLinkSet(){
-    return state.projects.some(p=> p.stages.some(st=>
-      st.url || (st.subtasks || []).some(s=>s.url)));
-  }
-  // 0 = 끝남, 1~4 = 진행 중인 단계
-  function tutorialStep(){
-    if(tutorialDone()) return 0;
-    if(!state.channels.length) return 1;
-    if(!state.projects.length) return 2;
-    if(!anyStageTouched()) return 3;
-    if(!anyLinkSet()) return 4;
-    finishTutorial();
-    return 0;
-  }
 
-  /* ---- 진행 중 조명 ----
-     안내(카드/띠)와 지금 눌러야 할 대상을 함께 밝히고 나머지를 어둡게 한다.
-     둘은 세로로 붙어 있으므로 두 사각형을 합친 영역 하나면 충분하다. */
-  let tutSpotStep = 0;
-
-  function clearTutSpot(){
-    const el = document.getElementById("tutSpot");
-    if(el) el.remove();
-    document.querySelectorAll(".tut-lit").forEach(e=> e.classList.remove("tut-lit"));
-  }
-
-  function tutSpotTarget(step){
-    if(state.view === "detail"){
-      if(step === 3) return document.querySelector("#stageList .stage-check");
-      if(step === 4) return document.querySelector("#stageList .stage-link-add");
-    }
-    return document.getElementById("tutCta");   // 목록에서는 버튼 자체가 대상
-  }
-
-  // 눌러야 할 곳 바로 아래에 손가락을 띄운다.
-  // 대상 안에 넣으므로 좌표 계산이 필요 없고, 대상이 움직여도 따라간다.
-  function addTutHand(el){
-    if(!el) return;
-    if(getComputedStyle(el).position === "static") el.style.position = "relative";
-    const hand = document.createElement("span");
-    hand.className = "tut-hand";
-    hand.textContent = "👆";
-    el.appendChild(hand);
-  }
-
-  function refreshTutSpot(){
-    clearTutSpot();
-    if(!tutSpotStep) return;
-    const box = document.getElementById("tutorialBox");
-    const card = box && box.firstElementChild;
-    if(!card) return;
-
-    const layer = document.createElement("div");
-    layer.className = "tut-spot";
-    layer.id = "tutSpot";
-    document.body.appendChild(layer);
-
-    card.classList.add("tut-lit");                 // 안내 카드/띠를 어둠 위로
-    const t = tutSpotTarget(tutSpotStep);
-    if(t){
-      const row = t.closest(".stage") || t;        // 체크 동그라미 대신 단계 줄 전체를 밝힌다
-      if(row !== card && !card.contains(row)) row.classList.add("tut-lit");
-      addTutHand(t);
-    }
-  }
-
-  // 나머지를 어둡게 하고 사이드바의 '사용 가이드' 버튼에만 조명을 준다
-  function celebrateTutorialDone(){
-    tutSpotStep = 0;
-    clearTutSpot();
-    const side = document.getElementById("side");
-    if(side && side.classList.contains("collapsed")){   // 접혀 있으면 버튼이 안 보인다
-      side.classList.remove("collapsed");
-      const ic = document.getElementById("collapseIcon");
-      if(ic) ic.style.transform = "rotate(0deg)";
-      document.documentElement.style.setProperty("--side-w", "272px");
-    }
-    celebrateProject();                                  // 색종이
-
-    setTimeout(()=>{
-      const btn = document.getElementById("guideBtn");
-      if(!btn) return;
-      const r = btn.getBoundingClientRect();
-      const pad = 6;
-
-      const layer = document.createElement("div");
-      layer.className = "spot-layer";
-      layer.id = "spotLayer";
-
-      const hole = document.createElement("div");
-      hole.className = "spot-hole";
-      hole.style.left = (r.left - pad) + "px";
-      hole.style.top = (r.top - pad) + "px";
-      hole.style.width = (r.width + pad * 2) + "px";
-      hole.style.height = (r.height + pad * 2) + "px";
-      layer.appendChild(hole);
-
-      const call = document.createElement("div");
-      call.className = "spot-callout";
-      call.innerHTML = `
-        <h4>🎉 준비 끝났어요!</h4>
-        <p>이제 이야기를 만들고 단계를 채워나가시면 돼요.<br><br>
-        더 궁금한 게 생기면 여기 <b>사용 가이드</b>를 열어보세요.
-        우클릭 메뉴, 드래그 정렬, 단축키까지 전부 정리해뒀어요.</p>
-        <div class="spot-actions">
-          <button class="btn-ghost" id="spotClose">알겠어요</button>
-          <button class="btn-primary" id="spotOpen">가이드 열어보기</button>
-        </div>`;
-      layer.appendChild(call);
-      document.body.appendChild(layer);
-
-      // 가이드 버튼 오른쪽에 붙이되 화면 밖으로 나가지 않게
-      const cw = call.offsetWidth, chh = call.offsetHeight;
-      let left = r.right + 18;
-      if(left + cw > window.innerWidth - 12) left = Math.max(12, r.left - cw - 18);
-      let top = r.top + r.height / 2 - chh / 2;
-      top = Math.min(Math.max(12, top), window.innerHeight - chh - 12);
-      call.style.left = left + "px";
-      call.style.top = top + "px";
-
-      if(left > r.right){                                 // 말풍선 꼬리
-        const arrow = document.createElement("div");
-        arrow.className = "spot-arrow";
-        arrow.style.left = (left - 18) + "px";
-        arrow.style.top = (r.top + r.height / 2 - 9) + "px";
-        layer.appendChild(arrow);
-      }
-
-      const close = ()=>{ layer.remove(); window.removeEventListener("resize", close); };
-      layer.addEventListener("click", (e)=>{ if(e.target === layer) close(); });
-      call.querySelector("#spotClose").onclick = close;
-      call.querySelector("#spotOpen").onclick = ()=>{ close(); openGuideModal(); };
-      window.addEventListener("resize", close);
-    }, 340);
-  }
-
-  // 문구를 렌더 시점에 만든다 — 단계 구성은 설정에서 바뀌므로 하드코딩하면 거짓말이 된다
-  function tutSteps(){
-    const tmpl = (state.stageTemplate || []).map(s=>s.name).filter(Boolean);
-    const stageList = tmpl.length ? tmpl.join(" · ") : "제작";
-    const firstStage = (state.projects[0] && state.projects[0].stages[0] && state.projects[0].stages[0].name)
-      || tmpl[0] || "첫";
-    return [
-      null,
-      {t:"채널 만들기",
-       d:"유튜브 채널 하나당 하나씩 만들어요. 나중에 얼마든지 추가할 수 있어요.",
-       tip:["채널에 <b>우클릭</b>하면 이름·색상·이미지를 바꾸거나 지울 수 있어요.",
-            "채널을 지우면 그 채널의 이야기도 <b>함께 영구 삭제</b>돼요. 이야기는 휴지통에서 되살릴 수 있지만 채널 삭제는 되돌릴 수 없어요."],
-       cta:"채널 만들기"},
-      {t:"첫 이야기 등록하기",
-       d:`제목과 채널만 넣으면 <b>${escapeHtml(stageList)}</b> ${tmpl.length}단계가 자동으로 붙어요. 업로드 예정일과 썸네일은 나중에 넣어도 돼요.`,
-       tip:["이 단계 구성은 <b>기본값</b>일 뿐이에요. <b>설정 → 진행 단계 기본값 설정</b>에서 추가·삭제·순서 변경·이름 변경을 할 수 있어요. 바꾼 구성은 <b>앞으로 만들 이야기</b>부터 적용되고, 이미 만든 이야기는 그대로예요.",
-            "비슷한 포맷을 반복해서 만드신다면 카드에 <b>우클릭 → 복제</b>가 편해요."],
-       cta:"+ 첫 이야기 만들기"},
-      {t:"진행 단계 체크해보기",
-       d:`이야기를 열고 <b>${escapeHtml(firstStage)}</b> 단계의 왼쪽 동그라미를 눌러보세요. 진행률이 바로 올라가요.`,
-       d2:`아래 <b>${escapeHtml(firstStage)}</b> 단계의 <b>왼쪽 동그라미</b>를 눌러보세요. 진행률이 바로 올라가요.`,
-       tip:["단계를 <b>클릭해서 펼치면</b> 하위 작업을 넣을 수 있어요. 하위 작업이 있으면 진행률이 <b>자동 계산</b>되고, 없으면 동그라미로 직접 완료 처리해요.",
-            "단계에 <b>우클릭</b>하면 그 이야기에서만 단계 이름을 바꿀 수도 있어요."],
-       cta:"이야기 열기"},
-      {t:"단계에 링크 연결하기",
-       d:"각 단계에 대본 문서나 이미지 폴더 주소를 걸어두면, 그 단계에서 바로 열 수 있어요.",
-       d2:"단계 줄에 있는 <b>🔗 링크</b> 버튼을 눌러 주소를 붙여넣어 보세요. 대본 문서나 이미지 폴더를 걸어두면 여기서 바로 열려요.",
-       tip:["🔗 버튼은 평소엔 숨어 있다가 <b>단계에 마우스를 올리면</b> 나타나요.",
-            "하위 작업에도 각각 링크를 걸 수 있어요. 자료를 찾아 헤매지 않으려면 이걸 습관으로 만드는 게 제일 좋아요."],
-       cta:"이야기 열기"}
-    ];
-  }
 
   /* 로컬 경로 지원.
      브라우저는 웹페이지에서 file:// 로 나가는 걸 막는다(보안). 그래서 폴더 경로는
@@ -3662,83 +3499,6 @@ try{
       });
   }
 
-  function renderTutorial(){
-    // 완료 판정을 먼저 — 상세/목록 어느 쪽에서 끝내든 축하가 뜨도록
-    const step = tutorialStep();
-    const wasOnLastStep = (tutLastStep === 4);
-    tutLastStep = step;
-    if(step === 0 && wasOnLastStep) celebrateTutorialDone();
-    tutSpotStep = 0;
-    clearTutSpot();
-    const box = document.getElementById("tutorialBox");
-    if(!box) return;
-    box.innerHTML = "";
-    const inDetail = (state.view === "detail");
-    if(state.view !== "all" && !inDetail) return;
-    if(!step) return;
-    // 1~2단계는 목록에서만 (아직 이야기가 없으니 상세 화면 자체가 없다)
-    if(inDetail && step < 3) return;
-
-    const STEPS = tutSteps();
-    const tipHtml = (tips)=> (tips || []).map(t=>`<div class="tut-tip">💡 ${t}</div>`).join("");
-
-    // 이야기가 생긴 뒤(3~4단계)에는 내용을 가리지 않도록 얇은 띠로만.
-    // 3~4단계는 상세 화면에서 하는 일이라 그쪽에도 같이 띄운다.
-    if(step >= 3){
-      const s = STEPS[step];
-      const strip = document.createElement("div");
-      strip.className = "tut-strip";
-      // 이미 상세 화면이면 "이야기 열기" 버튼은 의미가 없다
-      strip.innerHTML = `
-        <span class="tut-num">${step}</span>
-        <span class="tut-strip-text"><b>${step}단계 · ${s.t}</b> — ${(inDetail && s.d2) ? s.d2 : s.d}</span>
-        ${inDetail ? "" : `<button class="add-btn" id="tutCta">${s.cta}</button>`}
-        <button class="tut-skip" id="tutSkip">건너뛰기</button>`;
-      box.appendChild(strip);
-    }else{
-      const card = document.createElement("div");
-      card.className = "tut-card";
-      card.innerHTML = `
-        <h3>이야기공방에 오신 걸 환영해요</h3>
-        <p class="tut-lead">4단계만 따라오시면 첫 이야기를 올릴 준비가 끝나요.</p>
-        ${[1,2,3,4].map(i=>{
-          const s = STEPS[i];
-          const cls = i < step ? "done" : (i === step ? "now" : "todo");
-          const detail = (i === step)
-            ? `<div class="tut-desc">${s.d}</div>
-               ${tipHtml(s.tip)}
-               <div class="tut-cta"><button class="add-btn" id="tutCta">${s.cta}</button></div>`
-            : "";
-          return `<div class="tut-step ${cls}">
-              <span class="tut-num">${i < step ? "✓" : i}</span>
-              <div class="tut-body"><div class="tut-title">${s.t}</div>${detail}</div>
-            </div>`;
-        }).join("")}
-        <div class="tut-foot">
-          <span class="tut-progress">${step - 1} / 4 완료</span>
-          <button class="tut-skip" id="tutSkip">튜토리얼 건너뛰기</button>
-        </div>`;
-      box.appendChild(card);
-    }
-
-    const skip = document.getElementById("tutSkip");
-    if(skip) skip.addEventListener("click", ()=>{
-      finishTutorial();
-      showFleetingToast("건너뛰었어요. 자세한 사용법은 사이드바의 사용 가이드에 있어요.");
-      renderAll();
-    });
-    // 안내가 실제로 그려진 뒤에 좌표를 재야 정확하다
-    tutSpotStep = step;
-    requestAnimationFrame(refreshTutSpot);
-
-    const cta = document.getElementById("tutCta");
-    if(cta) cta.addEventListener("click", ()=>{
-      if(step === 1){ openChannelModal(null, (ch)=>{ renderAll(); revealSidebar(ch && ch.id); }); return; }
-      if(step === 2){ openEditModal(null); return; }
-      const first = state.projects[0];      // 3~4단계는 첫 이야기를 열어준다
-      if(first){ state.view = "detail"; state.active = first.id; save(); renderAll(); }
-    });
-  }
 
   /* 예정일 판정 — 현황 요약과 필터가 같은 기준을 쓰도록 한 곳에 둔다 */
   function uploadTs(p){
@@ -3815,16 +3575,12 @@ try{
   }
 
   function renderPgrid(){
-    renderTutorial();
     const grid = document.getElementById("pgrid");
     if(!grid) return;
     let list = visibleProjects();
 
     grid.innerHTML = "";
     if(list.length===0){
-      // 튜토리얼 카드가 이미 같은 자리를 채우고 있으면 빈 화면 안내는 겹치지 않게 생략
-      const ts = tutorialStep();
-      if(ts === 1 || ts === 2) return;
       const searching = !!state.search;
       const filtered = !!state.channelFilter;
       const nothingAtAll = !searching && !filtered && state.projects.length === 0;
@@ -4354,7 +4110,6 @@ try{
           ${linkListHtml(p)}
         </div>
         <div class="detail-right">
-          <div id="tutorialBox"></div>
           <div class="stage-list" id="stageList"></div>
         </div>
         <div class="detail-notes">
@@ -4520,7 +4275,6 @@ try{
       });
     });
 
-    renderTutorial();   // 3~4단계는 여기서 하는 일이라 상세 화면에도 띄운다
     const stageList = document.getElementById("stageList");
     p.stages.forEach((stage, si)=>{
       const key = p.id+":"+si;
@@ -4783,6 +4537,94 @@ try{
       el.classList.add("ch-spot");
       setTimeout(()=> el.classList.remove("ch-spot"), 1900);
     }, 320);
+  }
+
+  /* =========================================================================
+     첫 실행 안내 — 한 걸음짜리
+
+     첫 채널은 앱이 미리 만들어 둔다. 그러지 않으면 이야기를 만들 수 없다.
+     다만 이름이 "내 채널" 이라 그대로 두면 채널이 여러 개 됐을 때 뭐가 뭔지 모른다.
+     그래서 딱 하나, 이름을 바꾸라는 것만 짚어준다.
+
+     한 번만 뜬다. 닫는 순간 도장을 찍으므로, 무시하고 나가도 다시 붙잡지 않는다.
+     ========================================================================= */
+  const FIRSTRUN_KEY = "yadam-firstrun-v1";
+
+  function maybeFirstRunHint(){
+    if(DEMO) return;
+    try{ if(localStorage.getItem(FIRSTRUN_KEY) === "done") return; }catch(e){ return; }
+    // 이미 쓰던 사람에게는 뜨면 안 된다. 다른 기기에서 로그인했을 때 원격 데이터가
+    // 도착하기 전에 뜨는 사고를 막으려고, 조건을 state 에서 직접 확인한다.
+    if(state.projects.length || state.trash.length) return;
+    if(state.channels.length !== 1) return;
+    if(state.channels[0].name !== defaultChannels[0].name) return;
+    if(window.innerWidth <= 760) return;   // 폰은 사이드바가 서랍이라 가리킬 대상이 없다
+    if(document.querySelector(".spot-layer")) return;
+    try{ localStorage.setItem(FIRSTRUN_KEY, "done"); }catch(e){}
+    revealSidebar(state.channels[0].id);
+    setTimeout(()=> showRenameChannelSpot(state.channels[0]), 380);
+  }
+
+  function showRenameChannelSpot(ch){
+    const el = document.querySelector('#chFilterList [data-ch="' + ch.id + '"]');
+    if(!el) return;
+    const r = el.getBoundingClientRect();
+    const pad = 6;
+
+    const layer = document.createElement("div");
+    layer.className = "spot-layer";
+
+    const hole = document.createElement("div");
+    hole.className = "spot-hole";
+    hole.style.left = (r.left - pad) + "px";
+    hole.style.top = (r.top - pad) + "px";
+    hole.style.width = (r.width + pad * 2) + "px";
+    hole.style.height = (r.height + pad * 2) + "px";
+    layer.appendChild(hole);
+
+    const call = document.createElement("div");
+    call.className = "spot-callout";
+    call.innerHTML =
+      '<h4>채널 이름 바꾸기</h4>' +
+      '<p><b>내 채널</b>은 임시 이름입니다.<br>유튜브 채널 이름으로 바꿔두면 준비 끝입니다.</p>' +
+      '<div class="spot-actions">' +
+        '<button class="btn-ghost" id="spotLater">나중에</button>' +
+        '<button class="btn-primary" id="spotRename">바꾸기</button>' +
+      '</div>';
+    layer.appendChild(call);
+    document.body.appendChild(layer);
+
+    // 채널 줄 오른쪽에 붙이되 화면 밖으로 나가지 않게
+    const cw = call.offsetWidth, chh = call.offsetHeight;
+    let left = r.right + 18;
+    if(left + cw > window.innerWidth - 12) left = Math.max(12, r.left - cw - 18);
+    let top = r.top + r.height / 2 - chh / 2;
+    top = Math.min(Math.max(12, top), window.innerHeight - chh - 12);
+    call.style.left = left + "px";
+    call.style.top = top + "px";
+
+    if(left > r.right){                                 // 말풍선 꼬리
+      const arrow = document.createElement("div");
+      arrow.className = "spot-arrow";
+      arrow.style.left = (left - 18) + "px";
+      arrow.style.top = (r.top + r.height / 2 - 9) + "px";
+      layer.appendChild(arrow);
+    }
+
+    const close = ()=>{
+      layer.remove();
+      window.removeEventListener("resize", close);
+      document.removeEventListener("keydown", onKey);
+    };
+    function onKey(e){ if(e.key === "Escape") close(); }
+    layer.addEventListener("click", (e)=>{ if(e.target === layer) close(); });
+    call.querySelector("#spotLater").onclick = close;
+    call.querySelector("#spotRename").onclick = ()=>{
+      close();
+      openChannelModal(ch, ()=>renderAll());
+    };
+    window.addEventListener("resize", close);
+    document.addEventListener("keydown", onKey);
   }
 
   // theme
@@ -5211,7 +5053,7 @@ try{
         <dt>삭제 대상</dt><dd>이야기 ${n}개 · 채널 설정</dd>
         <dt>삭제 범위</dt><dd>이 브라우저 + 클라우드</dd>
         <dt>휴지통</dt><dd>거치지 않고 바로 삭제</dd>
-        <dt>그 뒤</dt><dd>빈 상태, 튜토리얼 재시작</dd>
+        <dt>그 뒤</dt><dd>빈 상태, 채널 하나만 새로 생김</dd>
         <dt>계정</dt><dd>그대로 유지</dd>
       </dl>
       <p class="modal-question">정말 초기화할까요?</p>
@@ -5236,7 +5078,7 @@ try{
     const finish = ()=>{
       try{
         localStorage.removeItem("yadam-state-v5");
-        localStorage.removeItem(TUT_KEY);   // 완료 도장도 지워야 튜토리얼이 다시 뜬다
+        localStorage.removeItem(FIRSTRUN_KEY);   // 도장도 지워야 첫 실행 안내가 다시 뜬다
       }catch(e){}
       location.reload();
     };
@@ -5401,8 +5243,6 @@ try{
     if(bodyEl) new ResizeObserver(updateLayoutWidth).observe(bodyEl);
   }
 
-  // 튜토리얼 동안은 사이드바를 접어둔다. 채널을 만들면 그때 펴면서 짚어준다.
-  if(!tutorialDone() && window.innerWidth > 760) setSideCollapsed(true);
 
   renderAll();
 }catch(e){
