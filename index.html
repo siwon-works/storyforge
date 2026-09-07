@@ -1604,6 +1604,9 @@ try{
   var remoteMeta = null;
   var remoteChannels = null;     // 채널 표의 마지막 스냅샷 (행 배열)
   var myUid = null;              // 로그인한 사람의 id. 공유받은 것 구분에 쓴다
+  /* 초대 토큰을 잠깐 넣어두는 자리. bootAuth 가 파일 앞쪽에서 돌기 때문에
+     이 상수도 그보다 먼저 선언돼 있어야 한다. */
+  const JOIN_KEY = "yadam-join";
   /* 공유받은 사람에게 "누구 채널인지" 보여주려고 소유자가 스스로 적어두는 이름.
      남의 계정 정보는 읽을 수 없으므로 이 방법밖에 없다. */
   /* 공유받은 채널을 뭐라고 부를지.
@@ -2234,7 +2237,10 @@ try{
   }
 
   function showSignIn(){
-    authSub.textContent = "이야기를 만드는 곳";
+    // 초대 링크로 온 사람은 왜 로그인을 하는지 알아야 한다
+    authSub.textContent = pendingJoinToken()
+      ? "초대받은 채널이 있습니다. 로그인하면 들어갑니다."
+      : "이야기를 만드는 곳";
     authWho.style.display = "none";
     /* 구글 공식 G 로고. 색이 네 개라 하나의 path 로는 못 그린다. */
     authBody.innerHTML =
@@ -2483,6 +2489,7 @@ try{
 
   (function bootAuth(){
     if(DEMO){ startDemo(); return; }
+    captureJoinToken();     // 로그인하러 나가기 전에 챙겨둔다
     if(typeof supabase === "undefined" || !supabase || typeof supabase.createClient !== "function"){
       authBody.innerHTML = "";
       authSay("로그인 모듈을 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.", true);
@@ -5139,21 +5146,34 @@ try{
       });
   }
 
-  /* 링크를 열었을 때. 로그인 뒤에 처리한다 — 로그인 전에는 누구인지 모른다. */
-  function pendingJoinToken(){
+  /* 초대 링크는 로그인 전에 열리는 경우가 대부분이다. 그런데 구글 로그인으로
+     갔다 돌아오면 주소의 물음표 뒤가 통째로 날아간다 — 토큰도 같이 사라진다.
+     그래서 부팅하자마자 브라우저에 적어두고, 로그인이 끝난 뒤에 꺼내 쓴다.
+     (redirectTo 에 물음표를 붙이는 방법도 있지만, 그러면 리디렉션 허용 목록
+      설정에 기대게 된다. 여기가 어긋나면 로그인 자체가 막힌다) */
+  function captureJoinToken(){
     const m = location.search.match(/[?&]join=([^&]+)/);
-    return m ? decodeURIComponent(m[1]) : null;
+    if(!m) return;
+    try{ localStorage.setItem(JOIN_KEY, decodeURIComponent(m[1])); }catch(e){}
+    // 주소에서는 지운다. 남겨두면 새로고침할 때마다 다시 수락을 시도한다.
+    history.replaceState(null, "", location.origin + location.pathname);
   }
+  function pendingJoinToken(){
+    try{ return localStorage.getItem(JOIN_KEY); }catch(e){ return null; }
+  }
+  function clearJoinToken(){
+    try{ localStorage.removeItem(JOIN_KEY); }catch(e){}
+  }
+
   function consumeJoinToken(){
     const token = pendingJoinToken();
     if(!token || !sb) return;
+    clearJoinToken();          // 성공하든 실패하든 한 번만 시도한다
     sb.rpc("redeem_channel_invite", {p_token: token}).then(function(res){
-      history.replaceState(null, "", location.origin + location.pathname);
       if(res.error){ showFleetingToast(authErrText(res.error), true); return; }
       showFleetingToast("채널에 들어왔어요");
       location.reload();
     }).catch(function(e){
-      history.replaceState(null, "", location.origin + location.pathname);
       showFleetingToast(authErrText(e), true);
     });
   }
