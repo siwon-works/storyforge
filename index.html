@@ -1651,6 +1651,26 @@ try{
   }
 
   // 데이터 슬라이스만 추출 — UI 상태는 제외
+  /* 공유받은 이야기를 통째로 얼린다.
+
+     화면에서 버튼을 막는 것만으로는 못 막는다. 클릭 처리가 button 뿐 아니라
+     div·span·label 에도 붙어 있어서, 하나씩 찾아 막으면 계속 샌다.
+     실제로 "수정되는 것처럼 보였다가 새로고침하면 원래대로" 가 그렇게 생겼다.
+
+     얼려두면 어느 경로로 손대든 값이 안 바뀐다. 이 파일은 strict 모드가 아니라
+     얼린 객체에 쓰기를 시도해도 조용히 무시된다 — 다시 그려도 원래 값 그대로다.
+
+     주의: normalizeState 가 빠진 항목을 채우므로 그 뒤에 얼려야 한다. */
+  function deepFreeze(o){
+    if(!o || typeof o !== "object" || Object.isFrozen(o)) return o;
+    Object.freeze(o);
+    Object.keys(o).forEach(k=> deepFreeze(o[k]));
+    return o;
+  }
+  function freezeReadOnly(){
+    state.projects.forEach(p=>{ if(p._ro) deepFreeze(p); });
+  }
+
   /* 클라우드로 나가는 유일한 통로. 공유받은 이야기는 여기서 빠진다.
      이 한 곳만 지키면 남의 이야기를 내 것으로 복제하는 일이 생길 수 없다.
      (화면에는 섞여 보여도 된다 — 화면은 아무것도 저장하지 않는다) */
@@ -1826,6 +1846,7 @@ try{
       state.noteTrash = nextData.noteTrash;
       state.nickname = nextData.nickname;
       normalizeState(state);        // 다른 기기가 옛 버전이었을 수 있다
+      freezeReadOnly();             // 채운 뒤에 얼린다
       // 열려 있던 프로젝트가 사라졌으면 목록으로
       if(state.view === "detail" && state.active &&
          !state.projects.some(p=>p.id===state.active) &&
@@ -2596,6 +2617,9 @@ try{
 
   migrateState(state);
   normalizeState(state);
+  /* 브라우저에 남아 있던 state 로 시작할 때도 얼려야 한다. 원격 내용이 이것과
+     같으면 applyRemote 가 "내 쓰기의 메아리" 로 보고 건너뛰어서 얼 기회가 없다. */
+  freezeReadOnly();
   save();
 
   // ---------- helpers ----------
@@ -4383,14 +4407,14 @@ try{
           <div class="detail-banner" id="detailBanner" style="--tc1:${c1};--tc2:${c2}">
             ${p.thumbnail ? `<img src="${p.thumbnail}">` : `<span class="banner-letter">${(p.name||'?')[0]}</span>`}
             ${p.completed ? `<div class="stamp-overlay">${completionStampSvg()}</div>` : ""}
-            ${inTrash ? "" : `<div class="banner-edit">
+            ${(inTrash || p._ro) ? "" : `<div class="banner-edit">
               <div class="banner-edit-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               </div>
               <span class="banner-edit-title">${p.thumbnail ? "썸네일 바꾸기" : "썸네일 올리기"}</span>
               <span class="banner-edit-sub">클릭해서 이미지 선택</span>
             </div>`}
-            ${(p.thumbnail || inTrash) ? "" : `<span class="banner-hint">
+            ${(p.thumbnail || inTrash || p._ro) ? "" : `<span class="banner-hint">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
               썸네일 없음</span>`}
           </div>
@@ -4409,7 +4433,7 @@ try{
           <div class="stage-list" id="stageList"></div>
         </div>
         <div class="detail-notes">
-          ${noteBoardHtml(p, inTrash)}
+          ${noteBoardHtml(p, inTrash || p._ro)}
         </div>
       </div>
     `;
