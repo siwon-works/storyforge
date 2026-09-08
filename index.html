@@ -389,13 +389,18 @@
      미디어 쿼리를 못 쓴다 — 본문에 zoom 이 걸려 있어서 화면 폭과 실제 쓸 수 있는
      폭이 다르다. 130%로 키우면 1500px 화면도 속으로는 1154px 이다.
      그래서 자바스크립트가 본문 폭을 직접 재서 .narrow 를 붙인다. */
-  #body.narrow .detail-grid{grid-template-columns:260px minmax(0,1fr);}
-  /* 왼쪽 칸을 두 줄에 걸치게 한다. 안 그러면 첫째 줄 높이를 왼쪽 칸이 정해버려서,
-     왼쪽이 단계 목록보다 길 때 메모가 그 아래까지 밀려 빈 공간이 생긴다. */
-  #body.narrow .detail-left{grid-row:1 / span 2;}
-  #body.narrow .detail-right{grid-column:2;grid-row:1;}
-  #body.narrow .detail-notes{grid-column:2;grid-row:2;}
-  #body.narrow .detail-notes .note-card{margin-top:var(--sp-4);}
+  /* 폰은 폭이 아예 없으므로 이 규칙에서 뺀다. id+class 라 명시도가 높아서
+     감싸지 않으면 아래 폰용 규칙(1열)을 이겨버린다 — 실제로 그래서 폰 상세 화면이
+     260px 짜리 두 칸으로 눌려 있었다. */
+  @media (min-width:761px){
+    #body.narrow .detail-grid{grid-template-columns:260px minmax(0,1fr);}
+    /* 왼쪽 칸을 두 줄에 걸치게 한다. 안 그러면 첫째 줄 높이를 왼쪽 칸이 정해버려서,
+       왼쪽이 단계 목록보다 길 때 메모가 그 아래까지 밀려 빈 공간이 생긴다. */
+    #body.narrow .detail-left{grid-row:1 / span 2;}
+    #body.narrow .detail-right{grid-column:2;grid-row:1;}
+    #body.narrow .detail-notes{grid-column:2;grid-row:2;}
+    #body.narrow .detail-notes .note-card{margin-top:var(--sp-4);}
+  }
   .detail-right{width:100%;min-width:0;}
   @media (max-width:760px){
     .detail-grid{grid-template-columns:1fr;}
@@ -1076,6 +1081,7 @@
   /* ===================== 좁은 화면 =====================
      폰은 "확인 + 가벼운 기록"용. 관리·편집 기능은 숨긴다. */
   .mobile-only{display:none;}
+  .only-mobile{display:none;}   /* 폰에서만 나오는 짧은 말 */
   .side-backdrop{display:none;}
   .fab{display:none;}          /* 미디어쿼리보다 먼저 와야 안에서 켤 수 있다 */
   @media (max-width: 760px){
@@ -1098,6 +1104,48 @@
     .content-scroll{padding:14px 16px 80px;}
     .head-left h1{font-size:var(--fs-lg);}
 
+    /* 상세 화면에서는 제목을 아랫줄로 내려 폭을 다 준다.
+       윗줄에 도구 단추가 있어서 같은 줄에 두면 제목이 150px 남짓에 갇혀
+       열 줄로 쏟아진다. 목록 화면 제목("전체 이야기")은 짧으니 그대로 둔다. */
+    body.v-detail .head-left{flex:1 1 100%;order:3;}
+    /* 제목은 두 줄까지만. 야담 제목이 길어서 그냥 두면 화면 절반을 먹는다.
+       상단은 계속 붙어 있으니 그만큼 단계가 안 보인다.
+       고칠 때는(contenteditable) 다 보여야 하므로 접힘을 푼다. */
+    body.v-detail #titleText[contenteditable="false"]{
+      /* 제목 span 에 display:inline-block 이 인라인으로 박혀 있어서 이겨야 한다 */
+      display:-webkit-box !important;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+      overflow:hidden;}
+
+    /* 폰 상세는 "보고 체크"만 한다. 제목·배지는 작게, 고치는 단추는 감춘다 —
+       제목·날짜·썸네일을 폰에서 고치는 일은 드물고, 필요하면 목록 카드에서 하면 된다.
+       (제목은 여기서도 눌러서 고칠 수 있다) */
+    body.v-detail .head-left h1{font-size:var(--fs-md);}
+    body.v-detail .head-meta{margin-top:6px;}
+    body.v-detail .channel-badge-lg,
+    body.v-detail .date-badge{padding:5px 9px;font-size:var(--fs-xs);}
+    body.v-detail .channel-badge-lg span:not(.channel-avatar),
+    body.v-detail .date-badge{font-size:var(--fs-xs);}
+    body.v-detail .detail-actions{display:none;}
+    /* 링크를 새로 거는 것도 폰에서 할 일이 아니다. 이미 걸린 링크는 그대로 열린다.
+       이 단추들이 단계 줄 폭을 먹어서 진행률 숫자가 잘렸다. */
+    body.v-detail .stage-link-add, body.v-detail .sub-link-add{display:none;}
+    /* 좁은 줄에 3/3 · 진행 표시 · 100% 가 나란히 있으면 답답하다.
+       같은 걸 세 번 말하는 셈이라 가운데를 뺀다. */
+    body.v-detail .stage-mini-track{display:none;}
+    /* 링크도 빼둔다. 폰에서 대본 문서나 폴더를 열 일은 없다.
+       제목의 링크 표시만 감추고 클릭은 통과시켜서, 눌렀을 때 단계가 펼쳐지게 한다. */
+    body.v-detail .stage-title-link{pointer-events:none;}
+    body.v-detail .stage-title-link .lk,
+    body.v-detail .stage-title-link .lk-hint,
+    body.v-detail .sub-link-icon{display:none;}
+    /* 썸네일이 화면의 절반을 먹는다. 폭을 줄여 작게 두되 16:9 는 지킨다 —
+       높이만 자르면 위아래가 잘려서 무슨 그림인지 알아볼 수 없다. */
+    .detail-banner{max-width:240px;margin:0 auto;}
+    /* 채널·날짜·단추는 한 줄에. 좁다고 글자를 세로로 쌓으면 못 읽는다 */
+    body.v-detail .head-meta{gap:6px;}
+    body.v-detail .head-meta > *{white-space:nowrap;}
+    body.v-detail .detail-actions button{white-space:nowrap;}
+
     /* 현황은 옆으로 넘겨본다 — 세로로 쌓으면 화면을 다 먹는다 */
     .stat-row{display:flex;overflow-x:auto;gap:10px;padding-bottom:4px;
       scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
@@ -1116,6 +1164,7 @@
     /* 폰에서 안 쓰는 것 */
     .view-toggle,.zoom-ctrl,.topbar-divider{display:none;}
     .hide-mobile{display:none;}   /* 남은 시간·안내 문구 — 좁은 줄에서는 군더더기 */
+    .only-mobile{display:inline;}   /* 폰에서만 나오는 짧은 말 (예: "예정일") */
     .toolbar{gap:8px;}
     .search{min-width:0;flex:1 1 100%;order:-1;}
 
@@ -1329,6 +1378,28 @@
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .acct-mail{display:none;font-size:var(--fs-xs);color:var(--sub);
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* 끌어서 순서 바꾸기 — 단계와 하위 작업에 쓴다 */
+  .sort-handle{flex:0 0 auto;width:16px;cursor:grab;color:var(--line);user-select:none;
+    font-size:var(--fs-sm);line-height:1;text-align:center;
+    transition:color .12s ease, opacity .12s ease;}
+  /* 평소엔 흐리게. 줄에 마우스를 올리면 잡을 것이 있다는 걸 보여준다 */
+  .stage-head .sort-handle, .sub-item .sort-handle{opacity:.25;}
+  .stage-head:hover .sort-handle, .sub-item:hover .sort-handle{opacity:1;}
+  /* 보기 전용은 순서도 못 바꾼다 */
+  .ro-view .sort-handle{display:none;}
+  /* 폰에서는 감춘다. 손가락으로는 HTML5 드래그가 안 되고,
+     자리만 먹어서 단계 줄이 좁아진다. 순서는 컴퓨터에서 바꾼다. */
+  @media (max-width: 760px){ .sort-handle{display:none;} }
+  .sort-handle:hover{color:var(--accent);}
+  .sort-handle:active{cursor:grabbing;}
+  .sort-dragging{opacity:.4;}
+  .sort-over-before, .sort-over-after{position:relative;}
+  .sort-over-before::before, .sort-over-after::after{
+    content:"";position:absolute;left:0;right:0;height:2.5px;z-index:2;
+    background:var(--accent);border-radius:var(--r-sm);box-shadow:var(--sh-accent-sm);}
+  .sort-over-before::before{top:-2px;}
+  .sort-over-after::after{bottom:-2px;}
+
   .acct-caret{width:15px;height:15px;flex:0 0 auto;color:var(--sub);}
   /* 폰에서는 사진만. 이름까지 두면 제목이 밀려 두 줄이 된다 —
      눌렀을 때 뜨는 메뉴에 이메일이 있으니 누구인지는 거기서 안다.
@@ -1447,6 +1518,87 @@ try{
 
   function uid(){ return "id"+Date.now()+Math.floor(Math.random()*10000); }
 
+  /* 끌어서 순서 바꾸기. 손잡이를 잡았을 때만 끌린다 —
+     줄 전체를 draggable 로 두면 입력칸 글자를 고를 수 없다.
+     한 통(container) 안에서만 움직이므로, 하위 작업은 자기 단계를 벗어나지 못한다.
+     onMove(from, to) 는 자리만 알려준다. 실제 배열은 부르는 쪽이 옮긴다. */
+  function bindSortable(container, itemSel, onMove){
+    if(!container || container.dataset.sortable === "1") return;
+    container.dataset.sortable = "1";
+    let dragEl = null;
+
+    // 이 통의 바로 아래 줄까지 거슬러 올라간다. 단계 안에 하위 작업이 또 있어서
+    // closest 만 쓰면 남의 줄을 잡는다.
+    const rowOf = (node)=>{
+      let el = node;
+      while(el && el.parentElement !== container) el = el.parentElement;
+      return el && el.matches && el.matches(itemSel) ? el : null;
+    };
+    const rows = ()=> Array.prototype.filter.call(container.children, el=> el.matches(itemSel));
+    const clearMarks = ()=> rows().forEach(el=> el.classList.remove("sort-over-before", "sort-over-after"));
+    const dropSide = (row, e)=>{
+      const r = row.getBoundingClientRect();
+      return (e.clientY - r.top) < r.height / 2;   // true = 위쪽
+    };
+
+    container.addEventListener("mousedown", (e)=>{
+      const h = e.target.closest && e.target.closest(".sort-handle");
+      const row = h && rowOf(h);
+      if(row){ row.setAttribute("draggable", "true"); e.stopPropagation(); }
+    });
+    // 손잡이를 눌렀다고 단계가 펼쳐지거나 체크되면 안 된다
+    container.addEventListener("click", (e)=>{
+      if(e.target.closest && e.target.closest(".sort-handle")){ e.stopPropagation(); e.preventDefault(); }
+    }, true);
+    container.addEventListener("mouseup", ()=> rows().forEach(el=> el.removeAttribute("draggable")));
+
+    container.addEventListener("dragstart", (e)=>{
+      const row = rowOf(e.target);
+      if(!row){ return; }
+      dragEl = row;
+      row.classList.add("sort-dragging");
+      e.stopPropagation();                 // 상세 화면의 바깥 드래그와 겹치지 않게
+      e.dataTransfer.effectAllowed = "move";
+      try{ e.dataTransfer.setData("text/plain", "sort"); }catch(err){}
+    });
+    container.addEventListener("dragend", (e)=>{
+      if(dragEl) dragEl.classList.remove("sort-dragging");
+      clearMarks();
+      rows().forEach(el=> el.removeAttribute("draggable"));
+      dragEl = null;
+    });
+    container.addEventListener("dragover", (e)=>{
+      if(!dragEl) return;
+      const row = rowOf(e.target);
+      if(!row || row === dragEl) return;
+      e.preventDefault(); e.stopPropagation();
+      clearMarks();
+      row.classList.add(dropSide(row, e) ? "sort-over-before" : "sort-over-after");
+    });
+    container.addEventListener("dragleave", (e)=>{ if(!container.contains(e.relatedTarget)) clearMarks(); });
+    container.addEventListener("drop", (e)=>{
+      if(!dragEl) return;
+      const row = rowOf(e.target);
+      if(!row || row === dragEl){ clearMarks(); return; }
+      e.preventDefault(); e.stopPropagation();
+      const list = rows();
+      const from = list.indexOf(dragEl);
+      let to = list.indexOf(row) + (dropSide(row, e) ? 0 : 1);
+      if(from < to) to--;                  // 자기 자리를 뺀 만큼 당겨진다
+      clearMarks();
+      const el = dragEl; dragEl = null;
+      el.classList.remove("sort-dragging");
+      if(from !== to && from >= 0 && to >= 0) onMove(from, to);
+    });
+  }
+
+  // 배열 한 칸을 다른 자리로 옮긴다
+  function moveItem(arr, from, to){
+    if(!Array.isArray(arr) || from === to) return;
+    const [x] = arr.splice(from, 1);
+    arr.splice(to, 0, x);
+  }
+
   // 버튼용 라인 아이콘. 이모지는 OS/브라우저마다 제각각이라 SVG 로 통일한다.
   const svgIcon = (paths)=>
     `<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
@@ -1524,10 +1676,10 @@ try{
       channelId: channelId || null, completed:false, thumbnail:null,
       notes: [],
       createdAt: Date.now(), order: Date.now(),
-      stages: tmpl.map(st=>({
-        name: st.name, icon: st.icon || iconFor(st.name), manualDone:false,
+      stages: tmpl.map((st, i)=>({
+        id: "s" + i, name: st.name, icon: st.icon || iconFor(st.name), manualDone:false,
         url: st.url || "",
-        subtasks: (st.subtasks||[]).map(t=>({t, done:false}))
+        subtasks: (st.subtasks||[]).map((t, j)=>({id: "s" + i + "t" + j, t, done:false}))
       }))
     };
   }
@@ -1756,8 +1908,10 @@ try{
      비교는 도장을 뺀 알맹이로 한다. 안 그러면 도장이 도장을 부른다. */
   function stageCore(st){
     if(!st) return "";
+    // 고유 번호는 뺀다. 옛 데이터에 번호가 붙는 순간 온 단계가 "방금 수정됨"이 된다
     return JSON.stringify({name: st.name, icon: st.icon, url: st.url || "",
-                           manualDone: !!st.manualDone, subtasks: st.subtasks || []});
+                           manualDone: !!st.manualDone,
+                           subtasks: (st.subtasks || []).map(t=>({t: t.t, done: !!t.done, url: t.url || ""}))});
   }
   /* "2시간 전" 처럼 읽히는 시각. 협업할 때는 정확한 시각보다 "얼마나 됐나" 가 궁금하다. */
   function agoText(ts){
@@ -1789,12 +1943,20 @@ try{
     const baseStages = (base && base.stages) || [];
     let touched = false;
 
+    // 견줄 짝도 고유 번호로 찾는다. 순서가 바뀌었을 수 있어서 자리 번호로는 안 된다
+    const baseById = new Map(baseStages.map(st=>[st.id, st]));
     (p.stages || []).forEach((st, i)=>{
-      if(stageCore(st) === stageCore(baseStages[i])) return;
+      const was = baseById.has(st.id) ? baseById.get(st.id) : baseStages[i];
+      if(stageCore(st) === stageCore(was)) return;
       st.updatedAt = now;
       st.updatedBy = who;
       touched = true;
     });
+    // 순서만 바꾼 것도 남겨야 상대 화면에 그 순서가 간다
+    if(baseStages.length && (p.stages || []).map(st=>st.id).join() !== baseStages.map(st=>st.id).join()){
+      p.orderAt = now;
+      touched = true;
+    }
 
     /* 제목·날짜·채널·썸네일·완료에는 따로 도장을 둔다.
        이야기 도장(updatedAt)은 단계를 바꿔도 갱신되므로, 그걸로 제목을 견주면
@@ -1845,17 +2007,30 @@ try{
     if(!theirs) return mine;
     const out = JSON.parse(JSON.stringify(mine));
 
-    const ms = mine.stages || [], ts = theirs.stages || [];
-    const n = Math.max(ms.length, ts.length);
-    out.stages = [];
-    for(let i = 0; i < n; i++){
-      const a = ms[i], b = ts[i];
-      if(!a){ out.stages.push(JSON.parse(JSON.stringify(b))); continue; }
-      if(!b){ out.stages.push(a); continue; }
+    /* 단계는 고유 번호로 짝짓는다. 자리 번호로 짝지으면 한쪽이 순서를 바꾼 사이에
+       상대가 체크했을 때 엉뚱한 단계끼리 비교돼 체크가 딴 데 붙는다.
+       순서 자체는 마지막에 순서를 바꾼 쪽을 따른다(orderAt). */
+    /* 서버에 있던 옛 이야기에는 고유 번호가 없다. 그대로 두면 양쪽 다 undefined 가 되어
+       한 단계로 뭉뚱그려지고, 병합할 때마다 가짜 단계가 하나씩 늘어난다.
+       normalizeState 와 같은 규칙(자리 번호)으로 채워야 두 기기가 같은 번호를 본다. */
+    const withIds = (list)=> (list || []).map((st, i)=> st && st.id ? st : Object.assign({}, st, {id: "s" + i}));
+    const ms = withIds(mine.stages), ts = withIds(theirs.stages);
+    const mById = new Map(ms.map(st=>[st.id, st]));
+    const tById = new Map(ts.map(st=>[st.id, st]));
+    const pick = (a, b)=>{
+      if(!a) return JSON.parse(JSON.stringify(b));
+      if(!b) return a;
       // 도장이 같거나 없으면 내 것을 쓴다 — 그래야 새로 만든 이야기가 흔들리지 않는다
-      out.stages.push((b.updatedAt || 0) > (a.updatedAt || 0)
-        ? JSON.parse(JSON.stringify(b)) : a);
-    }
+      return (b.updatedAt || 0) > (a.updatedAt || 0) ? JSON.parse(JSON.stringify(b)) : a;
+    };
+    // 순서를 정하는 쪽을 앞에 두고, 상대에게만 있는 단계는 뒤에 붙인다 — 잃는 것보다 낫다
+    const lead = (theirs.orderAt || 0) > (mine.orderAt || 0) ? ts : ms;
+    const rest = lead === ts ? ms : ts;
+    const seen = new Set();
+    out.stages = [];
+    lead.forEach(st=>{ seen.add(st.id); out.stages.push(pick(mById.get(st.id), tById.get(st.id))); });
+    rest.forEach(st=>{ if(!seen.has(st.id)){ seen.add(st.id); out.stages.push(pick(mById.get(st.id), tById.get(st.id))); } });
+    out.orderAt = Math.max(mine.orderAt || 0, theirs.orderAt || 0);
 
     /* 메모는 아이디로 합친다. 한쪽에만 있으면 살린다 — 잃는 것보다 낫다.
        내가 지운 메모를 상대가 아직 갖고 있으면 되살아날 수 있는데,
@@ -2954,10 +3129,15 @@ try{
 
     s.projects.concat(s.trash).forEach(p=>{
       if(!Array.isArray(p.stages)) p.stages = [];
-      p.stages.forEach(st=>{
+      p.stages.forEach((st, i)=>{
         if(!Array.isArray(st.subtasks)) st.subtasks = [];
         if(!st.icon) st.icon = iconFor(st.name);
         if(typeof st.manualDone !== "boolean") st.manualDone = false;
+        /* 순서를 바꿀 수 있게 되면서 "몇 번째 단계" 로는 짝을 못 짓는다.
+           옛 데이터에는 자리 번호로 붙인다 — 어느 기기에서 열어도 같은 값이 나와야
+           양쪽이 같은 단계로 알아본다. uid() 를 쓰면 기기마다 달라져서 병합이 깨진다. */
+        if(!st.id) st.id = "s" + i;
+        st.subtasks.forEach((t, j)=>{ if(t && typeof t === "object" && !t.id) t.id = st.id + "t" + j; });
       });
       if(typeof p.order !== "number") p.order = p.createdAt || 0;
       if(typeof p.completed !== "boolean") p.completed = false;
@@ -4751,7 +4931,7 @@ try{
       <div class="head-meta">
       ${ch ? `<div class="channel-badge-lg">${chAvatarHtml(ch, 22)}<span>${escapeHtml(ch.name)}</span></div>` : ""}
       <div class="date-badge" id="dateBadge" title="${inTrash?'':'클릭하면 캘린더가 열려요'}" style="${inTrash?'cursor:default;':''}">
-        ${d ? `📅 예상 업로드 <span class="${!p.completed?'u-'+d.urgency:''}"><b>${d.label}</b>${d.rel}<span class="hide-mobile"> · ${countdownSpanHtml(d.ts)}</span></span>` : `📅 예상 업로드 날짜를 지정해주세요`}      </div>
+        ${d ? `📅 <span class="hide-mobile">예상 업로드 </span><span class="only-mobile">예정일 </span><span class="${!p.completed?'u-'+d.urgency:''}"><b>${d.label}</b>${d.rel}<span class="hide-mobile"> · ${countdownSpanHtml(d.ts)}</span></span>` : `📅 예상 업로드 날짜를 지정해주세요`}      </div>
       <div class="detail-actions">
         ${inTrash ? `
           <button id="restoreBtn">${ICON.restore}<span>복원하기</span></button>
@@ -4996,7 +5176,8 @@ try{
 
     const stageList = document.getElementById("stageList");
     p.stages.forEach((stage, si)=>{
-      const key = p.id+":"+si;
+      // 순서를 바꿀 수 있으니 자리 번호로 기억하면 엉뚱한 단계가 펼쳐진다
+      const key = p.id+":"+stage.id;
       const pct = prog.pcts[si];
       const isOpen = openStages.has(key);
       const isDone = pct===100;
@@ -5004,6 +5185,7 @@ try{
       el.className = "stage"+(isDone?" done":"")+(isOpen?" open":"")+(justCompletedStageKey===key?" flash":"");
       const subHtml = stage.subtasks.map((s,ti)=>`
         <div class="sub-item${s.done?' done':''}" data-ti="${ti}">
+          <span class="sort-handle" title="끌어서 순서 바꾸기">⠿</span>
           <span class="sub-check">${s.done?"✓":""}</span>
           <span class="sub-text" contenteditable="true" spellcheck="false">${escapeHtml(s.t)}</span>
           ${!s.url ? ""
@@ -5016,6 +5198,7 @@ try{
         </div>`).join("");
       el.innerHTML = `
         <div class="stage-head">
+          <span class="sort-handle" title="끌어서 순서 바꾸기">⠿</span>
           <span class="stage-check">${isDone?"✓":""}</span>
           <span class="stage-icon">${escapeHtml(stage.icon || iconFor(stage.name))}</span>
           ${!stage.url
@@ -5177,7 +5360,7 @@ try{
       const doAdd = ()=>{
         const t = addInput.value.trim();
         if(!t) return;
-        stage.subtasks.push({t, done:false});
+        stage.subtasks.push({id: uid(), t, done:false});
         openStages.add(key);
         focusSubAddKey = key;      // 다시 그린 뒤 이 단계 입력칸으로 커서를 돌려준다
         save(); renderAll();
@@ -5194,8 +5377,25 @@ try{
         focusSubAddKey = null;
         setTimeout(()=>{ addInput.focus(); }, 0);   // rAF 는 창이 가려지면 안 돈다
       }
+      /* 하위 작업 순서 — 자기 단계 안에서만 움직인다.
+         통이 .stage-body-inner 라서 다른 단계로 넘어갈 길이 없다. */
+      if(!p._ro){
+        bindSortable(el.querySelector(".stage-body-inner"), ".sub-item", (from, to)=>{
+          moveItem(stage.subtasks, from, to);
+          openStages.add(key);          // 옮기고 나서 접히면 뭘 했는지 안 보인다
+          save(); renderAll();
+        });
+      }
       stageList.appendChild(el);
     });
+
+    // 단계 순서
+    if(!p._ro){
+      bindSortable(stageList, ".stage", (from, to)=>{
+        moveItem(p.stages, from, to);
+        save(); renderAll();
+      });
+    }
   }
 
   function renderAll(){
@@ -5210,6 +5410,8 @@ try{
     }
     state.projects.forEach(syncCompleted);
     renderSidebar(); renderBody(); paintAcctName();
+    // 폰에서 상세 화면만 상단 배치를 달리한다 (제목을 아랫줄 전체 폭으로)
+    document.body.classList.toggle("v-detail", state.view === "detail");
     playViewTransition();
   }
 
@@ -6151,8 +6353,9 @@ try{
       return `
         <div id="stItems" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">
           ${items.map((st,i)=>`
-            <div style="border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;">
+            <div data-st-row="${i}" style="border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;background:var(--panel);">
               <div style="display:flex;gap:6px;align-items:center;padding:8px;">
+                <span class="sort-handle" title="끌어서 순서 바꾸기">⠿</span>
                 <button type="button" data-toggle="${i}" style="border:none;background:none;color:var(--sub);cursor:pointer;font-size:var(--fs-xs);width:16px;transform:rotate(${openIdx.has(i)?90:0}deg);transition:transform .12s ease;">▶</button>
                 <button type="button" data-icon-i="${i}" class="stIconBtn" title="아이콘 선택">${escapeHtml(st.icon || "🔧")}</button>
                 <input type="text" data-i="${i}" class="stItemInput" value="${st.name.replace(/"/g,'&quot;')}" placeholder="단계 이름  ex) 대본" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg);color:var(--text);font-size:var(--fs-sm);">
@@ -6165,12 +6368,15 @@ try{
                     <span style="font-size:var(--fs-sm);color:var(--sub);" title="이 단계에서 늘 여는 주소">🔗</span>
                     <input type="text" data-urli="${i}" class="stUrlInput" placeholder="매번 같은 주소만  ex) 클로드 프로젝트" value="${(st.url||"").replace(/"/g,'&quot;')}" style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--panel);color:var(--text);font-size:var(--fs-sm);">
                   </div>
+                  <div data-sub-list="${i}" style="display:flex;flex-direction:column;gap:6px;">
                   ${st.subtasks.map((t,ti)=>`
-                    <div style="display:flex;gap:6px;align-items:center;">
+                    <div data-sub-row="${ti}" style="display:flex;gap:6px;align-items:center;background:var(--panel);">
+                      <span class="sort-handle" title="끌어서 순서 바꾸기">⠿</span>
                       <input type="text" data-si="${i}" data-ti="${ti}" class="stSubInput" value="${t.replace(/"/g,'&quot;')}" placeholder="하위 작업  ex) 초안 쓰기" style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--panel);color:var(--text);font-size:var(--fs-sm);">
                       <button type="button" data-subrm="${i}:${ti}" style="border:none;background:none;color:var(--sub);cursor:pointer;font-size:var(--fs-sm);">✕</button>
                     </div>
                   `).join("")}
+                  </div>
                   <button type="button" data-subadd="${i}" style="border:1px dashed var(--border);background:none;color:var(--accent);border-radius:var(--r-sm);padding:6px 8px;font-size:var(--fs-xs);cursor:pointer;">+ 하위 작업 추가</button>
                 </div>
               ` : ""}
@@ -6244,6 +6450,29 @@ try{
           if(inputs.length) inputs[inputs.length-1].focus();
         });
       });
+      /* 끌어서 순서 바꾸기 — 단계는 목록 안에서, 하위 작업은 자기 단계 안에서만 */
+      bindSortable(m.querySelector("#stItems"), "[data-st-row]", (from, to)=>{
+        moveItem(items, from, to);
+        // 펼쳐둔 자리도 함께 따라가야 방금 옮긴 단계가 접히지 않는다
+        const open = new Set();
+        openIdx.forEach(i=>{
+          let n = i;
+          if(i === from) n = to;
+          else if(from < i && i <= to) n = i - 1;
+          else if(to <= i && i < from) n = i + 1;
+          open.add(n);
+        });
+        openIdx = open;
+        rerender(m);
+      });
+      m.querySelectorAll("[data-sub-list]").forEach(list=>{
+        const si = +list.dataset.subList;
+        bindSortable(list, "[data-sub-row]", (from, to)=>{
+          moveItem(items[si].subtasks, from, to);
+          rerender(m);
+        });
+      });
+
       m.querySelector("#stAddBtn").addEventListener("click", ()=>{
         items.push({name:"", icon:"🔧", url:"", subtasks:[]});
         rerender(m);
