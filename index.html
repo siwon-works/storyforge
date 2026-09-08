@@ -1330,6 +1330,23 @@
   .acct-mail{display:none;font-size:var(--fs-xs);color:var(--sub);
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .acct-caret{width:15px;height:15px;flex:0 0 auto;color:var(--sub);}
+  /* 폰에서는 사진만. 이름까지 두면 제목이 밀려 두 줄이 된다 —
+     눌렀을 때 뜨는 메뉴에 이메일이 있으니 누구인지는 거기서 안다.
+     (이 규칙은 .acct-card 정의보다 뒤에 있어야 이긴다) */
+  @media (max-width: 760px){
+    .acct-card{padding:3px;max-width:none;border-color:transparent;background:none;}
+    .acct-txt, .acct-caret{display:none;}
+  }
+
+  /* 마이페이지 — 누구의 계정인지 먼저 보여주고 이름을 고치게 한다 */
+  .mypage-head{display:flex;align-items:center;gap:10px;margin-bottom:var(--sp-4);
+    padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-md);}
+  .mypage-av{width:40px;height:40px;border-radius:50%;flex:0 0 auto;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--accent);color:#fff;font-weight:700;font-size:var(--fs-lg);}
+  .mypage-av img{width:100%;height:100%;object-fit:cover;display:block;}
+  .mypage-mail{flex:1;min-width:0;font-size:var(--fs-sm);color:var(--sub);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -1453,6 +1470,7 @@ try{
     play:    svgIcon('<circle cx="12" cy="12" r="9"/><path d="M10 8.5 16 12l-6 3.5Z"/>'),
     download: svgIcon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'),
     upload:  svgIcon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>'),
+    person:  svgIcon('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'),
     logout:  svgIcon('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>'),
     settings: svgIcon('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>')
   };
@@ -1677,6 +1695,21 @@ try{
   function myDisplayName(){
     const n = (state.nickname || "").trim();
     return n || googleName();
+  }
+
+  /* 계정 카드에 보이는 이름. 상대에게 보이는 이름과 같아야 한다 —
+     둘이 다르면 표시 이름을 바꿔도 내 화면은 그대로라 안 먹은 것처럼 보인다.
+     renderAll 이 부르므로 이름을 바꾸는 즉시 반영된다. */
+  function paintAcctName(){
+    const el = document.getElementById("acctName");
+    if(!el || !authedUser) return;
+    const shown = myDisplayName() || "";
+    el.textContent = shown;
+    // 사진이 없어 글자를 쓰는 아바타도 같이 따라간다
+    const av = document.getElementById("acctAv");
+    if(av && !av.querySelector("img")){
+      av.textContent = String(shown || "?").trim().charAt(0).toUpperCase();
+    }
   }
   var remoteReadAt = 0;          // 마지막 원격 조회를 시작한 시각
   var DOC_LIMIT = 250000;        // 문서 1개 256KiB 제한에 대한 안전 여유
@@ -2659,7 +2692,7 @@ try{
       av.innerHTML = pic
         ? '<img src="' + escapeHtml(pic) + '" alt="" referrerpolicy="no-referrer">'
         : escapeHtml(String(name || "?").trim().charAt(0).toUpperCase());
-      document.getElementById("acctName").textContent = name;
+      paintAcctName();          // 표시 이름을 정했으면 그게 나온다
       document.getElementById("acctMail").textContent = user.email || "";
       card.title = user.email || "";
       card.style.display = "flex";
@@ -2673,6 +2706,7 @@ try{
         const r = card.getBoundingClientRect();
         openContextMenu(r.left, r.bottom + 6, [
           {header: true, label: user.email || ""},
+          {icon: ICON.person, label: "마이페이지", action: openMyPageModal},
           "sep",
           {icon: ICON.logout, label: "로그아웃", danger: true, action: doSignOut}
         ]);
@@ -5155,7 +5189,7 @@ try{
       }
     }
     state.projects.forEach(syncCompleted);
-    renderSidebar(); renderBody();
+    renderSidebar(); renderBody(); paintAcctName();
     playViewTransition();
   }
 
@@ -5696,9 +5730,20 @@ try{
       });
   }
 
-  function openNicknameModal(){
+  /* 마이페이지 — 오른쪽 위 계정을 눌러서 연다.
+     이름은 여기 한 군데서만 바꾼다. 설정에도 두면 같은 걸 두 곳에서 찾게 된다. */
+  function openMyPageModal(){
     const cur = (state.nickname || "").trim();
-    openSubModal("표시 이름", `
+    const meta = (authedUser && authedUser.user_metadata) || {};
+    const pic  = meta.avatar_url || meta.picture || "";
+    const mail = (authedUser && authedUser.email) || "";
+    openModal("마이페이지", `
+      <div class="mypage-head">
+        <span class="mypage-av">${pic
+          ? `<img src="${escapeHtml(pic)}" alt="" referrerpolicy="no-referrer">`
+          : escapeHtml(String(myDisplayName() || "?").trim().charAt(0).toUpperCase())}</span>
+        <span class="mypage-mail">${escapeHtml(mail)}</span>
+      </div>
       <div class="field"><label>이름</label>
         <input type="text" id="nickInput" maxlength="20" placeholder="${escapeHtml(googleName() || "이름")}"
                value="${escapeHtml(cur)}"></div>
@@ -5711,13 +5756,13 @@ try{
         <button class="btn-primary" id="nkOk">저장</button>
       </div>`,
       (m2)=>{
-        m2.querySelector("#nkCancel").onclick = closeSubModal;
+        m2.querySelector("#nkCancel").onclick = closeModal;
         m2.querySelector("#nkOk").onclick = ()=>{
           const v = m2.querySelector("#nickInput").value.trim();
           state.nickname = v || null;
           lastChannelsSent = new Map();   // 내 채널에 새 이름을 다시 실어 보낸다
-          closeSubModal(); save(); renderAll();
-          showFleetingToast("표시 이름을 바꿨어요");
+          closeModal(); save(); renderAll();
+          showFleetingToast("이름을 바꿨어요");
         };
         submitOnEnter(m2, "#nkOk");
         m2.querySelector("#nickInput").focus();
@@ -5761,12 +5806,6 @@ try{
   function openSettingsModal(){
     openModal("설정", `
       <div style="display:flex;flex-direction:column;gap:6px;">
-        ${sb && authedUser ? `
-        <button type="button" id="nickRow" class="opt-row">
-          ${ICON.shared}
-          <span class="opt-row-txt"><b>표시 이름</b><i>채널을 공유했을 때 상대에게 보이는 이름</i></span>
-          <span class="opt-row-arw">${escapeHtml(myDisplayName() || "")} ▶</span>
-        </button>` : ``}
         ${sb && authedUser && isCollaboratorAccount() ? `
         <button type="button" id="promoteRow" class="opt-row">
           ${ICON.link}
@@ -5807,8 +5846,6 @@ try{
       <div class="modal-actions"><button class="btn-ghost" id="closeBtn">닫기</button></div>
     `, (m)=>{
       m.querySelector("#closeBtn").onclick = closeModal;
-      const nickBtn = m.querySelector("#nickRow");
-      if(nickBtn) nickBtn.addEventListener("click", openNicknameModal);
       const promoteBtn = m.querySelector("#promoteRow");
       if(promoteBtn) promoteBtn.addEventListener("click", openPromoteModal);
       m.querySelector("#stSettingsRow").addEventListener("click", openStageSettings);
