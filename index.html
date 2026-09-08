@@ -320,7 +320,9 @@
   /* 공유받은 이야기는 손댈 수 없다. 버튼을 지우지 않고 막기만 한다 —
      지우면 화면 구조가 달라져서 "왜 다르지" 가 되고, 막으면 "못 만지는구나" 가 된다. */
   .ro-view button:not(.ro-allow), .ro-view input, .ro-view textarea,
-  .ro-view .stage-check, .ro-view .note{pointer-events:none;}
+  /* 하위 작업은 contenteditable 이라 커서가 들어간다. 고쳐도 blur 하면 되돌아가지만
+     그 사이 "수정되는 것처럼" 보인다. 아예 손이 안 닿게 막는다. */
+  .ro-view .stage-check, .ro-view .note, .ro-view .sub-text{pointer-events:none;}
   .ro-view .stage-link-add, .ro-view .sub-link-add, .ro-view .note-del,
   .ro-view .sub-rm, .ro-view .sub-add-row, .ro-view .note-add,
   .ro-view .pcard-actions, .ro-view .proj-actions{display:none !important;}
