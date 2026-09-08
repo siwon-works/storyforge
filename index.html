@@ -2900,6 +2900,20 @@ try{
     return s;
   }
 
+  /* 2026-09-07 이전 기본 단계 — 이름 다섯 개에 하위 작업이 하나도 없었다.
+     저장된 값이 정확히 이 모양이면 설정을 한 번도 안 건드린 사람이다.
+     기본값을 또 바꿀 일이 생기면 지금 기본값을 여기에 한 줄 더하면 된다. */
+  function isUntouchedOldTemplate(t){
+    const names = ["대본", "이미지", "인트로", "썸네일", "업로드"];
+    if(!Array.isArray(t) || t.length !== names.length) return false;
+    return t.every(function(st, i){
+      return st && st.name === names[i]
+        && (st.icon || iconFor(names[i])) === iconFor(names[i])
+        && !String(st.url || "").trim()
+        && (!Array.isArray(st.subtasks) || st.subtasks.length === 0);
+    });
+  }
+
   /* 버전과 무관하게 매번 도는 보정.
      빠진 항목을 기본값으로 채운다. 새 항목을 더했을 때 여기 한 줄만 추가하면
      옛 데이터도 그대로 열린다. */
@@ -2910,6 +2924,12 @@ try{
     if(s.sortMode === "created") s.sortMode = "date";   // 없어진 정렬 방식(등록순)
     if(!Array.isArray(s.channels)) s.channels = [];
     if(!Array.isArray(s.stageTemplate) || !s.stageTemplate.length){
+      s.stageTemplate = JSON.parse(JSON.stringify(DEFAULT_STAGE_TEMPLATE));
+    }
+    /* 기본값을 바꿔도 이미 쓰던 사람에게는 안 간다 — 저장된 자기 값이 있기 때문이다.
+       그래서 "손 한 번 안 댄 사람"만 새 기본값으로 옮겨준다.
+       단계 이름·아이콘·링크·하위 작업 중 하나라도 손댔으면 그대로 둔다. */
+    if(isUntouchedOldTemplate(s.stageTemplate)){
       s.stageTemplate = JSON.parse(JSON.stringify(DEFAULT_STAGE_TEMPLATE));
     }
     s.stageTemplate.forEach(st=>{
