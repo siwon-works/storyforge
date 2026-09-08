@@ -3913,9 +3913,15 @@ try{
     });
   }
 
+  /* "완료만 보기" 는 완료된 것만 보여준다. 작업 중인 것과 섞으면
+     "이번 달 뭘 올렸더라" 훑을 때 방해가 된다. 전부 보려면 검색을 쓴다. */
+  function passesDoneFilter(p){
+    return state.showCompleted ? !!p.completed : !p.completed;
+  }
+
   // ---------- sidebar ----------
   function renderSidebar(){
-    document.getElementById("allCount").textContent = state.projects.filter(p=>!p.completed || state.showCompleted).length;
+    document.getElementById("allCount").textContent = state.projects.filter(passesDoneFilter).length;
     document.getElementById("trashCount").textContent = state.trash.length;
     document.getElementById("navAll").classList.toggle("active", state.view==="all" && !state.channelFilter);
     document.getElementById("navTrash").classList.toggle("active", state.view==="trash");
@@ -3973,7 +3979,7 @@ try{
     if(!shownChannels.length){
       chFilterEl.innerHTML = "";
     } else {
-      const activeProjects = state.projects.filter(p=>!p.completed || state.showCompleted);
+      const activeProjects = state.projects.filter(passesDoneFilter);
       chFilterEl.innerHTML = `
         <div class="sidebar-ch-filter" id="chFilterList">
           ${shownChannels.map(c=>{
@@ -4083,7 +4089,7 @@ try{
     }
     document.getElementById("addChBtnSidebar").onclick = ()=> openChannelModal(null, ()=>renderAll());
 
-    let visible = state.projects.filter(p=>!p.completed || state.showCompleted);
+    let visible = state.projects.filter(passesDoneFilter);
     if(state.channelFilter) visible = visible.filter(p=>p.channelId===state.channelFilter);
     sortByDeadline(visible).forEach((p)=>{
       const globalIdx = state.projects.indexOf(p);
@@ -4257,10 +4263,10 @@ try{
           <button id="viewGrid" class="${state.layout==='grid'?'active':''}">▦</button>
           <button id="viewList" class="${state.layout==='list'?'active':''}">☰</button>
         </div>
-        <button class="toggle-completed ${state.showCompleted?'active':''}" id="toggleDone">${state.showCompleted?'완료 숨기기':'완료 보기'}</button>
+        <button class="toggle-completed ${state.showCompleted?'active':''}" id="toggleDone">${state.showCompleted?'완료 숨기기':'완료만 보기'}</button>
         <button class="add-btn" id="dashNewBtn">+ 새 이야기</button>
       </div>
-      <div class="sub-note">💡 완료(100%)된 이야기는 기본적으로 숨겨져요.</div>
+      <div class="sub-note">💡 ${state.showCompleted ? "완료(100%)된 이야기만 보고 있어요." : "완료(100%)된 이야기는 숨겨져요."}</div>
       ${statRowHtml()}
       <div class="pgrid ${state.layout==='list'?'list':''}" id="pgrid"></div>
     `;
@@ -4397,7 +4403,7 @@ try{
     let list = state.projects.slice();
     if(sf === "overdue")     list = list.filter(isOverdue);
     else if(sf === "wrapup") list = list.filter(needsPublish);
-    else list = list.filter(p=>!p.completed || state.showCompleted);
+    else list = list.filter(passesDoneFilter);
 
     if(state.channelFilter) list = list.filter(p=>p.channelId===state.channelFilter);
     if(state.search) list = list.filter(p=>p.name.toLowerCase().includes(state.search.toLowerCase()));
