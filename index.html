@@ -1085,6 +1085,23 @@
   .only-mobile{display:none;}   /* 폰에서만 나오는 짧은 말 */
   .side-backdrop{display:none;}
   .fab{display:none;}          /* 미디어쿼리보다 먼저 와야 안에서 켤 수 있다 */
+
+  /* 오른쪽 아래에 늘 있는 "지금 할 일" 단추. 어느 화면에서든 여기서 작은 창을 꺼낸다.
+     작은 창은 사용자가 누른 직후에만 열 수 있어서(브라우저 규칙) 단추가 꼭 있어야 한다. */
+  .pip-fab{position:fixed;right:22px;bottom:22px;z-index:180;display:none;
+    align-items:center;gap:8px;padding:11px 16px 11px 13px;
+    background:var(--accent);color:#fff;border:none;border-radius:var(--r-full);
+    font-family:inherit;font-size:var(--fs-sm);font-weight:700;cursor:pointer;
+    box-shadow:var(--sh-lg);transition:transform .13s ease, filter .13s ease;}
+  .pip-fab.on{display:inline-flex;}
+  .pip-fab:hover{transform:translateY(-2px);filter:brightness(1.07);}
+  .pip-fab:active{transform:translateY(0) scale(.97);}
+  .pip-fab svg{width:17px;height:17px;flex:0 0 auto;}
+  .pip-fab-n{background:rgba(255,255,255,.26);border-radius:var(--r-full);
+    padding:1px 8px;font-size:var(--fs-xs);}
+  .pip-fab-n:empty{display:none;}
+  /* 폰에서는 작은 창이 안 되고, 새 이야기 단추와도 겹친다 */
+  @media (max-width: 760px){ .pip-fab{display:none !important;} }
   @media (max-width: 760px){
     .mobile-only{display:inline-flex;}
 
@@ -1379,6 +1396,39 @@
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .acct-mail{display:none;font-size:var(--fs-xs);color:var(--sub);
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* 지금 할 일 — 앱 안 화면과 작은 창이 같은 모양을 쓴다 */
+  .todo-list{display:flex;flex-direction:column;}
+  .todo-row{display:flex;align-items:center;gap:10px;padding:11px 12px;height:67px;
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--r-md);
+    margin-bottom:7px;transition:opacity .17s ease, transform .17s ease, border-color .12s ease;}
+  .todo-row:hover{border-color:var(--accent);}
+  .todo-row.done{opacity:0;transform:translateX(16px);}
+  .todo-av{flex:0 0 auto;display:flex;align-items:center;}
+  .todo-row.cont .todo-av{opacity:.35;}
+  .todo-txt{flex:1;min-width:0;}
+  .todo-story{display:block;color:var(--sub);font-size:var(--fs-xs);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .todo-task{display:block;font-weight:700;font-size:var(--fs-md);margin-top:3px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .todo-hit{flex:0 0 auto;border:1.5px solid var(--ok);background:none;
+    color:var(--ok);font-family:inherit;font-size:var(--fs-sm);font-weight:700;
+    padding:8px 13px;border-radius:var(--r-full);cursor:pointer;
+    transition:background .12s ease, color .12s ease;}
+  .todo-hit:hover{background:var(--ok);color:#fff;}
+  .todo-empty{padding:40px 12px;text-align:center;color:var(--sub);}
+  .todo-wrap{max-width:640px;}
+  .todo-row.cont .todo-story{color:var(--line);}
+  /* 단계 칩 — 좁은 창에서는 옆으로 민다. 스크롤 막대는 자리만 먹어서 감춘다 */
+  .todo-chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:12px;
+    scrollbar-width:none;}
+  .todo-chips::-webkit-scrollbar{display:none;}
+  .todo-chip{flex:0 0 auto;border:1px solid var(--border);background:var(--panel);
+    color:var(--sub);font-family:inherit;font-size:var(--fs-xs);font-weight:600;
+    padding:7px 11px;border-radius:var(--r-full);cursor:pointer;white-space:nowrap;
+    transition:background .12s ease, color .12s ease, border-color .12s ease;}
+  .todo-chip:hover{border-color:var(--accent);color:var(--accent);}
+  .todo-chip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+
   /* 끌어서 순서 바꾸기 — 단계와 하위 작업에 쓴다 */
   .sort-handle{flex:0 0 auto;width:16px;cursor:grab;color:var(--line);user-select:none;
     font-size:var(--fs-sm);line-height:1;text-align:center;
@@ -1474,6 +1524,10 @@
     <div class="content-scroll"><div id="body"></div></div>
   </main>
   <button class="fab" id="fabNew" title="새 이야기">+</button>
+  <button class="pip-fab" id="pipFab" type="button" title="작업하는 화면 위에 띄워둡니다">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><rect x="12" y="12" width="8" height="6" rx="1"/></svg>
+    <span>지금 할 일</span><span class="pip-fab-n" id="pipFabN"></span>
+  </button>
 </div>
 
 <div class="auth-gate" id="authGate">
@@ -3119,6 +3173,7 @@ try{
        안 돼서 원인을 찾기 어렵다. 다른 기기에서 채널을 지웠을 때 실제로 생긴다. */
     if(s.channelFilter && !s.channels.some(c=>c.id === s.channelFilter)) s.channelFilter = null;
     if(typeof s.channelsCollapsed !== "boolean") s.channelsCollapsed = false;
+    if(typeof s.todoStage !== "string") s.todoStage = "";
     if(typeof s.nickname !== "string") s.nickname = s.nickname || null;
     // 없어진 현황 칸(진행 중/완료/이번 주 마감)의 필터가 남아 있으면 풀 방법이 없다
     if(s.statFilter && s.statFilter !== "overdue" && s.statFilter !== "wrapup") s.statFilter = null;
@@ -4581,14 +4636,96 @@ try{
 
   /* 지금 할 일 — 열자마자 "뭘 해야 하는지"가 보여야 한다.
      끝나지 않은 첫 단계의, 끝나지 않은 첫 하위 작업. */
-  function nextTaskOf(p){
+  /* 끝나지 않은 첫 단계와, 그 안의 끝나지 않은 첫 하위 작업.
+     자리 번호까지 돌려준다 — "지금 할 일" 목록에서 바로 체크하려면 어디를 찍을지 알아야 한다. */
+  function nextTaskRef(p){
     for(let i=0;i<p.stages.length;i++){
       const st = p.stages[i];
       if(stagePct(st) === 100) continue;
-      const sub = (st.subtasks||[]).find(s=>!s.done);
-      return {stageName: st.name, icon: st.icon || iconFor(st.name), sub: sub ? sub.t : null};
+      const ti = (st.subtasks||[]).findIndex(s=>!s.done);
+      return {si:i, ti:ti, stage:st, sub: ti>=0 ? st.subtasks[ti] : null};
     }
     return null;
+  }
+  function nextTaskOf(p){
+    const r = nextTaskRef(p);
+    if(!r) return null;
+    return {stageName: r.stage.name, icon: r.stage.icon || iconFor(r.stage.name),
+            sub: r.sub ? r.sub.t : null};
+  }
+
+  /* 작업 중인 이야기마다 "지금 손댈 것" 한 줄씩.
+     여러 이야기를 동시에 굴리면 어느 하나를 통째로 잊기 쉬워서, 한자리에 모아 보여준다.
+     공유받아 보기만 되는 이야기는 뺀다 — 내가 할 일이 아니다. */
+  /* 작업 중인 이야기마다, 지금 단계에서 안 끝난 하위 작업을 전부 꺼낸다.
+     대본을 뽑을 때는 여러 이야기의 대본을 한꺼번에 하므로 단계로 묶이는 게 자연스럽다.
+     앞 단계를 건너뛰지는 않는다 — 이야기마다 "끝나지 않은 첫 단계" 하나만 본다.
+     공유받아 보기만 되는 이야기는 뺀다. */
+  function todoRows(stageFilter){
+    const out = [];
+    state.projects.forEach(p=>{
+      if(p.completed || p._ro) return;
+      const r = nextTaskRef(p);
+      if(!r) return;
+      const st = r.stage;
+      if(stageFilter && st.name !== stageFilter) return;
+      const ch = channelOf(p);
+      const base = {
+        pid: p.id, si: r.si,
+        story: displayTitle(p.name),
+        chObj: ch || null,
+        ch: ch ? chDisplayName(ch) : "미분류",
+        color: ch ? safeColor(ch.color) : "var(--accent)",
+        stageName: st.name,
+        icon: st.icon || iconFor(st.name),
+        uploadAt: p.uploadAt || ""
+      };
+      const subs = st.subtasks || [];
+      if(!subs.length){
+        out.push(Object.assign({}, base, {ti:-1, task: st.name, onlyStage:true}));
+        return;
+      }
+      subs.forEach((sub, ti)=>{
+        if(sub.done) return;
+        out.push(Object.assign({}, base, {ti:ti, task: sub.t, onlyStage:false}));
+      });
+    });
+
+    /* 단계 차례대로 → 같은 단계 안에서는 마감 임박순.
+       한 이야기의 하위 작업끼리는 원래 순서를 지킨다(정렬이 안정적이라 그대로 남는다). */
+    const order = (state.stageTemplate || []).map(x=>x.name);
+    const rank = (n)=>{ const i = order.indexOf(n); return i < 0 ? 99 : i; };
+    out.sort((a, b)=>{
+      if(rank(a.stageName) !== rank(b.stageName)) return rank(a.stageName) - rank(b.stageName);
+      const da = fmtDateTime(a.uploadAt), db = fmtDateTime(b.uploadAt);
+      if(da && db && da.ts !== db.ts) return da.ts - db.ts;
+      if(!!da !== !!db) return da ? -1 : 1;      // 날짜 없는 것은 뒤로
+      return 0;
+    });
+    return out;
+  }
+
+  /* 단계 칩에 붙일 숫자 */
+  function todoStageCounts(){
+    const m = new Map();
+    todoRows().forEach(r=>{
+      if(!m.has(r.stageName)) m.set(r.stageName, {icon: r.icon, n: 0});
+      m.get(r.stageName).n++;
+    });
+    return m;
+  }
+
+  /* 목록에서 바로 완료 처리. 하위 작업이 있으면 그것을, 없으면 단계 자체를 끝낸다. */
+  function doTodoRow(pid, si, ti){
+    const p = state.projects.find(x=>x.id === pid);
+    if(!p || p._ro) return false;
+    const st = p.stages[si];
+    if(!st) return false;
+    if(ti >= 0 && st.subtasks[ti]) st.subtasks[ti].done = true;
+    else st.manualDone = true;
+    syncCompleted(p);
+    save();
+    return true;
   }
   function nextTaskCardHtml(p){
     const n = nextTaskOf(p);
@@ -4599,6 +4736,196 @@ try{
       ${n.sub ? `<div class="next-sub">${escapeHtml(n.sub)}</div>`
               : `<div class="next-sub muted">하위 작업 없음 — 동그라미를 눌러 완료</div>`}
     </div>`;
+  }
+
+  /* 할 일 한 줄. 앱 안 화면과 작은 창이 같은 모양을 쓴다. */
+  function todoRowHtml(t, i, prev){
+    /* 같은 이야기가 이어지면 제목을 흐리게 둔다. 줄 높이는 그대로라 창에 몇 줄이
+       들어가는지 계산이 흐트러지지 않는다. 채널은 왼쪽 색 막대로 안다. */
+    const same = prev && prev.pid === t.pid;
+    const av = t.chObj ? chAvatarHtml(t.chObj, 24)
+                       : `<span class="channel-avatar" style="width:24px;height:24px;background:var(--sub);font-size:12px;">?</span>`;
+    return `<div class="todo-row${same ? " cont" : ""}" data-i="${i}">
+      <span class="todo-av">${av}</span>
+      <span class="todo-txt">
+        <span class="todo-story">${same ? "↳" : escapeHtml(t.story)}</span>
+        <span class="todo-task">${escapeHtml(t.icon)} ${escapeHtml(t.stageName)}${
+          t.onlyStage ? "" : " · " + escapeHtml(t.task)}</span>
+      </span>
+      <button class="todo-hit" type="button">했음</button>
+    </div>`;
+  }
+
+  /* 단계 칩 — "지금 대본 중" 이면 대본만 남긴다. 고른 것은 기억한다. */
+  function todoChipsHtml(){
+    const counts = todoStageCounts();
+    const total = todoRows().length;
+    const cur = state.todoStage || "";
+    let html = `<button type="button" class="todo-chip${cur ? "" : " on"}" data-stage="">전체 ${total}</button>`;
+    (state.stageTemplate || []).forEach(st=>{
+      const c = counts.get(st.name);
+      if(!c) return;
+      html += `<button type="button" class="todo-chip${cur === st.name ? " on" : ""}" data-stage="${escapeHtml(st.name)}">${
+        escapeHtml(c.icon)} ${escapeHtml(st.name)} ${c.n}</button>`;
+    });
+    // 기본 단계에 없는 이름(직접 만든 단계)도 뒤에 붙인다
+    counts.forEach((c, name)=>{
+      if((state.stageTemplate || []).some(x=>x.name === name)) return;
+      html += `<button type="button" class="todo-chip${cur === name ? " on" : ""}" data-stage="${escapeHtml(name)}">${
+        escapeHtml(c.icon)} ${escapeHtml(name)} ${c.n}</button>`;
+    });
+    return html;
+  }
+
+  function bindTodoChips(root, onPick){
+    root.querySelectorAll(".todo-chip").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        state.todoStage = b.dataset.stage || "";
+        save();
+        onPick();
+      });
+    });
+  }
+
+  /* 목록을 그리고 단추를 건다. 앱 안이든 작은 창이든 이 함수 하나만 부른다.
+     rows 를 넘기지 않으면 지금 상태에서 새로 뽑는다. */
+  function paintTodoList(listEl, countEl, limit){
+    /* 고른 단계를 다 끝내면 저절로 전체로 돌아간다. 안 그러면 빈 화면에 갇힌다. */
+    if(state.todoStage && !todoStageCounts().has(state.todoStage)) state.todoStage = "";
+    const all = todoRows(state.todoStage || "");
+    const shown = limit > 0 ? all.slice(0, limit) : all;
+    const rest = all.length - shown.length;
+    if(countEl){
+      countEl.textContent = all.length
+        ? (rest > 0 ? all.length + "건 (외 " + rest + ")" : all.length + "건")
+        : "";
+    }
+    if(!all.length){
+      const noStories = !state.projects.some(p=>!p.completed && !p._ro);
+      listEl.innerHTML = `<div class="todo-empty">${
+        state.todoStage ? escapeHtml(state.todoStage) + " 단계는 다 했어요 👏"
+        : noStories      ? "아직 만든 이야기가 없어요"
+        :                  "지금 할 일이 없어요 👏"}</div>`;
+      return;
+    }
+    listEl.innerHTML = shown.map((t, i)=> todoRowHtml(t, i, shown[i-1])).join("");
+    listEl.querySelectorAll(".todo-hit").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const row = btn.closest(".todo-row");
+        const t = shown[+row.dataset.i];
+        if(!t) return;
+        row.classList.add("done");          // 사라지는 모션을 먼저 보여준다
+        setTimeout(()=>{
+          if(doTodoRow(t.pid, t.si, t.ti)) renderAll();
+        }, 170);
+      });
+    });
+  }
+
+  /* ---------- 작은 항상-위 창 ----------
+     작업하는 화면을 덮지 않고 "지금 할 일" 만 구석에 띄워둔다.
+     크롬·엣지만 된다. 창을 끌어 늘리면 줄이 따라 늘어난다 — 몇 줄 볼지 따로 묻지 않는다. */
+  var pipWin = null;
+  const PIP_HEAD = 46, PIP_CHIPS = 40, PIP_ROW = 74, PIP_PAD = 14;
+  const PIP_EXTRA_CSS = `
+    body{margin:0;overflow:hidden;background:var(--bg);}
+    .pip{display:flex;flex-direction:column;height:100vh;}
+    .pip-head{display:flex;align-items:center;gap:8px;padding:11px 14px;flex:0 0 auto;
+      border-bottom:1px solid var(--border);background:var(--panel);}
+    .pip-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:0 0 auto;}
+    .pip-title{font-weight:700;flex:1;font-size:var(--fs-sm);}
+    .pip-count{color:var(--sub);font-size:var(--fs-xs);}
+    .pip .todo-chips{flex:0 0 auto;margin:0;padding:7px 7px 0;}
+    .pip .todo-list{flex:1;overflow:hidden;padding:7px;}
+  `;
+  const PIP_SIZE_KEY = "yadam-pip-size";
+
+  function pipSupported(){ return "documentPictureInPicture" in window; }
+
+  function pipRowLimit(){
+    if(!pipWin) return 5;
+    return Math.max(1, Math.floor((pipWin.innerHeight - PIP_HEAD - PIP_CHIPS - PIP_PAD) / PIP_ROW));
+  }
+
+  /* 작은 창은 앱 화면을 그대로 따라간다. 안 맞추면 시스템 설정을 따라가서,
+     앱은 밝은데 작은 창만 까맣게 뜬다. */
+  /* 오른쪽 아래 단추의 숫자와 문구를 맞춘다 */
+  function paintPipFab(){
+    const el = document.getElementById("pipFab");
+    if(!el) return;
+    const open = pipWin && !pipWin.closed;
+    el.classList.toggle("on", pipSupported());
+    el.querySelector("span").textContent = open ? "작은 창 보기" : "지금 할 일";
+    const n = todoRows().length;
+    document.getElementById("pipFabN").textContent = open ? "" : (n || "");
+  }
+
+  function syncPipTheme(){
+    if(!pipWin || pipWin.closed) return;
+    const t = document.documentElement.getAttribute("data-theme") || "light";
+    pipWin.document.documentElement.setAttribute("data-theme", t);
+  }
+
+  function paintPip(){
+    if(!pipWin || pipWin.closed) return;
+    syncPipTheme();
+    const chipEl = pipWin.document.getElementById("todoChips");
+    if(chipEl){
+      chipEl.innerHTML = todoChipsHtml();
+      bindTodoChips(chipEl, ()=>{ renderAll(); });
+    }
+    const listEl = pipWin.document.getElementById("todoList");
+    const countEl = pipWin.document.getElementById("todoCount");
+    if(listEl) paintTodoList(listEl, countEl, pipRowLimit());
+  }
+
+  async function openTodoPip(){
+    if(!pipSupported()){
+      showFleetingToast("크롬이나 엣지에서만 됩니다", true);
+      return;
+    }
+    if(pipWin && !pipWin.closed){ pipWin.focus(); return; }
+    let size = {width: 420, height: PIP_HEAD + PIP_CHIPS + PIP_PAD + PIP_ROW * 5};
+    try{
+      const saved = JSON.parse(localStorage.getItem(PIP_SIZE_KEY) || "null");
+      if(saved && saved.width > 0 && saved.height > 0) size = saved;
+    }catch(e){}
+
+    try{
+      pipWin = await documentPictureInPicture.requestWindow(size);
+    }catch(e){
+      showFleetingToast("작은 창을 못 열었어요", true);
+      return;
+    }
+
+    /* 앱 스타일을 통째로 복사한다. 색·글꼴·어두운 화면까지 그대로 따라온다 —
+       작은 창용 CSS 를 따로 두면 앱 모양을 고칠 때마다 두 곳을 고쳐야 한다. */
+    const st = pipWin.document.createElement("style");
+    st.textContent = (document.querySelector("style") || {}).textContent + PIP_EXTRA_CSS;
+    pipWin.document.head.appendChild(st);
+    pipWin.document.body.innerHTML =
+      `<div class="pip">
+         <div class="pip-head">
+           <span class="pip-dot"></span>
+           <span class="pip-title">지금 할 일</span>
+           <span class="pip-count" id="todoCount"></span>
+         </div>
+         <div class="todo-chips" id="todoChips"></div>
+         <div class="todo-list" id="todoList"></div>
+       </div>`;
+    syncPipTheme();
+    paintPip();
+
+    // 창 크기를 바꾸면 줄 수가 따라오고, 그 크기를 기억해 다음에도 그대로 연다
+    pipWin.addEventListener("resize", ()=>{
+      paintPip();
+      try{
+        localStorage.setItem(PIP_SIZE_KEY,
+          JSON.stringify({width: pipWin.innerWidth, height: pipWin.innerHeight}));
+      }catch(e){}
+    });
+    pipWin.addEventListener("pagehide", ()=>{ pipWin = null; renderAll(); });
+    renderAll();     // "작은 창으로" 단추의 상태를 바꾼다
   }
 
   /* 링크 모음 — 단계마다 흩어진 링크를 한 곳에서 연다 */
@@ -5416,7 +5743,7 @@ try{
       }
     }
     state.projects.forEach(syncCompleted);
-    renderSidebar(); renderBody(); paintAcctName();
+    renderSidebar(); renderBody(); paintAcctName(); paintPip(); paintPipFab();
     // 폰에서 상세 화면만 상단 배치를 달리한다 (제목을 아랫줄 전체 폭으로)
     document.body.classList.toggle("v-detail", state.view === "detail");
     playViewTransition();
@@ -5440,6 +5767,7 @@ try{
   document.getElementById("newProjBtn").addEventListener("click", ()=>openEditModal(null));
   document.getElementById("navAll").addEventListener("click", ()=>{ state.view="all"; state.active=null; state.channelFilter=null; save(); renderAll(); });
   document.getElementById("navTrash").addEventListener("click", ()=>{ state.view="trash"; state.active=null; save(); renderAll(); });
+  document.getElementById("pipFab").addEventListener("click", openTodoPip);
   /* 접힘은 저장하지 않는다 — 새로고침하면 항상 펼친 상태로 돌아온다.
      그래서 튜토리얼이 잠깐 접어둬도 사용자 설정을 건드리지 않는다. */
   function setSideCollapsed(collapsed){
@@ -5570,7 +5898,7 @@ try{
   document.getElementById("themeBtn").addEventListener("click", ()=>{
     const cur = document.documentElement.getAttribute("data-theme");
     const next = cur==="dark" ? "light" : "dark";
-    localStorage.setItem("yadam-theme", next); applyTheme();
+    localStorage.setItem("yadam-theme", next); applyTheme(); syncPipTheme();
   });
   applyTheme();
 
