@@ -4849,6 +4849,11 @@ try{
     .pip-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:0 0 auto;}
     .pip-title{font-weight:700;flex:1;font-size:var(--fs-sm);}
     .pip-count{color:var(--sub);font-size:var(--fs-xs);}
+    .pip-theme{flex:0 0 auto;width:26px;height:26px;padding:0;border:none;
+      background:none;color:var(--sub);cursor:pointer;border-radius:var(--r-sm);
+      display:flex;align-items:center;justify-content:center;}
+    .pip-theme:hover{color:var(--accent);background:var(--accent-soft);}
+    .pip-theme svg{width:15px;height:15px;}
     .pip .todo-chips{flex:0 0 auto;margin:0;padding:7px 7px 0;}
     .pip .todo-list{flex:1;overflow:hidden;padding:7px;}
   `;
@@ -4878,6 +4883,16 @@ try{
     if(!pipWin || pipWin.closed) return;
     const t = document.documentElement.getAttribute("data-theme") || "light";
     pipWin.document.documentElement.setAttribute("data-theme", t);
+    const tb = pipWin.document.getElementById("pipTheme");
+    if(tb) tb.innerHTML = t === "dark" ? MOON_SVG : SUN_SVG;
+  }
+
+  function toggleTheme(){
+    const cur = document.documentElement.getAttribute("data-theme");
+    const next = cur === "dark" ? "light" : "dark";
+    try{ localStorage.setItem("yadam-theme", next); }catch(e){}
+    applyTheme();
+    syncPipTheme();
   }
 
   function paintPip(){
@@ -4923,11 +4938,14 @@ try{
            <span class="pip-dot"></span>
            <span class="pip-title">지금 할 일</span>
            <span class="pip-count" id="todoCount"></span>
+           <button class="pip-theme" id="pipTheme" type="button" title="밝게/어둡게"></button>
          </div>
          <div class="todo-chips" id="todoChips"></div>
          <div class="todo-list" id="todoList"></div>
        </div>`;
     syncPipTheme();
+    const tb = pipWin.document.getElementById("pipTheme");
+    if(tb) tb.addEventListener("click", toggleTheme);
     paintPip();
 
     // 창 크기를 바꾸면 줄 수가 따라오고, 그 크기를 기억해 다음에도 그대로 연다
@@ -5909,11 +5927,7 @@ try{
     if(t==="light"){ document.documentElement.setAttribute("data-theme","light"); document.getElementById("themeBtn").innerHTML=SUN_SVG; }
     else { document.documentElement.setAttribute("data-theme","dark"); document.getElementById("themeBtn").innerHTML=MOON_SVG; }
   }
-  document.getElementById("themeBtn").addEventListener("click", ()=>{
-    const cur = document.documentElement.getAttribute("data-theme");
-    const next = cur==="dark" ? "light" : "dark";
-    localStorage.setItem("yadam-theme", next); applyTheme(); syncPipTheme();
-  });
+  document.getElementById("themeBtn").addEventListener("click", toggleTheme);
   applyTheme();
 
   setInterval(refreshCountdowns, 1000*30);
