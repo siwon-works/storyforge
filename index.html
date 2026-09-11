@@ -1402,7 +1402,7 @@
     background:var(--panel);border:1px solid var(--border);border-radius:var(--r-md);
     margin-bottom:7px;transition:opacity .17s ease, transform .17s ease, border-color .12s ease;}
   .todo-row:hover{border-color:var(--accent);}
-  .todo-row.done{opacity:0;transform:translateX(16px);}
+  .todo-row.done{opacity:0;transform:translateX(22px) scale(.97);}
   .todo-av{flex:0 0 auto;display:flex;align-items:center;}
   .todo-row.cont .todo-av{opacity:.35;}
   .todo-txt{flex:1;min-width:0;}
@@ -1410,11 +1410,19 @@
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .todo-task{display:block;font-weight:700;font-size:var(--fs-md);margin-top:3px;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .todo-hit{flex:0 0 auto;border:1.5px solid var(--ok);background:none;
-    color:var(--ok);font-family:inherit;font-size:var(--fs-sm);font-weight:700;
-    padding:8px 13px;border-radius:var(--r-full);cursor:pointer;
-    transition:background .12s ease, color .12s ease;}
-  .todo-hit:hover{background:var(--ok);color:#fff;}
+  /* 앱의 단계 체크와 같은 모양. 누르면 초록으로 차면서 한 번 통통 튄다 */
+  .todo-check{flex:0 0 auto;width:30px;height:30px;border-radius:50%;
+    border:2.5px solid var(--border);background:none;color:transparent;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;
+    transition:transform .13s ease, border-color .13s ease, background .13s ease, color .13s ease;}
+  .todo-check svg{width:16px;height:16px;}
+  .todo-check:hover{border-color:var(--ok);transform:scale(1.12);}
+  .todo-check.on{background:var(--ok);border-color:var(--ok);color:#fff;}
+  .todo-check.pop{animation:pop-bounce .35s ease;}
+  /* 체크된 줄은 잠깐 초록빛을 띠었다가 옆으로 빠진다 */
+  .todo-row.checked{border-color:var(--ok);}
+  .todo-row.checked .todo-task{color:var(--sub);text-decoration:line-through;
+    text-decoration-color:var(--ok);text-decoration-thickness:2px;}
   .todo-empty{padding:40px 12px;text-align:center;color:var(--sub);}
   .todo-wrap{max-width:640px;}
   .todo-row.cont .todo-story{color:var(--line);}
@@ -4752,7 +4760,9 @@ try{
         <span class="todo-task">${escapeHtml(t.icon)} ${escapeHtml(t.stageName)}${
           t.onlyStage ? "" : " · " + escapeHtml(t.task)}</span>
       </span>
-      <button class="todo-hit" type="button">체크</button>
+      <button class="todo-check" type="button" aria-label="완료로 표시">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </button>
     </div>`;
   }
 
@@ -4809,15 +4819,19 @@ try{
       return;
     }
     listEl.innerHTML = shown.map((t, i)=> todoRowHtml(t, i, shown[i-1])).join("");
-    listEl.querySelectorAll(".todo-hit").forEach(btn=>{
+    listEl.querySelectorAll(".todo-check").forEach(btn=>{
       btn.addEventListener("click", ()=>{
         const row = btn.closest(".todo-row");
         const t = shown[+row.dataset.i];
-        if(!t) return;
-        row.classList.add("done");          // 사라지는 모션을 먼저 보여준다
+        if(!t || btn.classList.contains("on")) return;
+        /* 체크가 켜지는 걸 먼저 보여주고, 한 박자 뒤에 줄이 빠진다.
+           바로 지우면 "눌렀나?" 싶어서 해낸 느낌이 안 든다. */
+        btn.classList.add("on", "pop");
+        row.classList.add("checked");
+        setTimeout(()=> row.classList.add("done"), 340);
         setTimeout(()=>{
           if(doTodoRow(t.pid, t.si, t.ti)) renderAll();
-        }, 170);
+        }, 560);
       });
     });
   }
